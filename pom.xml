@@ -39,6 +39,44 @@
 				<filtering>true</filtering>
 			</resource>
 		</resources>
+		
+		<plugins>
+			<!-- Assembly plugin to create standalone java application -->
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.5.5</version>
+				<configuration>
+					<fileSets>
+						<fileSet>
+							<directory>${basedir}/src/main/resources</directory>
+							<outputDirectory></outputDirectory>
+						</fileSet>
+					</fileSets>
+					<descriptors>
+						<descriptor>src/main/resources/standalone_assembly.xml</descriptor>
+					</descriptors>
+					<!-- @see http://loop81.blogspot.de/2012/03/javafx-2-get-started-with-maven-eclipse.html -->
+					<archive>
+						<manifest>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+						</manifest>
+						<manifestEntries>
+							<JavaFX-Version>8.0</JavaFX-Version>
+							<Main-Class>${project.mainClass}</Main-Class>
+						</manifestEntries>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+			
 	</build>
 	
 </project>
