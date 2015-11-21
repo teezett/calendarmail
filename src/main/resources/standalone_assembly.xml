@@ -28,7 +28,7 @@
 			<!-- do NOT include the JavaFX dependency as it will cause the application 
 				to crash (cannot find glass.dll, etc.) -->
 			<excludes>
-				<exclude>com.oracle:javafx</exclude>
+<!--				<exclude>com.oracle:javafx</exclude>-->
 			</excludes>
 			<unpack>true</unpack>
 			<useProjectArtifact>false</useProjectArtifact>

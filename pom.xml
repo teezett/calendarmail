@@ -35,6 +35,20 @@
 		</dependency>
 	</dependencies>
 
+	<reporting>
+		<plugins>
+			<!-- Javadoc -->
+			<plugin>
+				<groupId>maven</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.10.3</version>
+				<configuration>
+					
+				</configuration>
+			</plugin>
+		</plugins>
+	</reporting>
+	
 	<build>
 		<defaultGoal>install</defaultGoal>
 
@@ -46,6 +60,15 @@
 		</resources>
 		
 		<plugins>
+			<!-- Javadoc -->
+			<plugin>
+				<groupId>maven</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.10.3</version>
+				<configuration>
+					
+				</configuration>
+			</plugin>
 			<!-- jgitflow plugin to create releases -->
 			<plugin>
 				<groupId>external.atlassian.jgitflow</groupId>
