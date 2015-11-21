@@ -28,11 +28,11 @@
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.6.6</version>
 		</dependency>
-	 <dependency>
-	  <groupId>commons-cli</groupId>
-	  <artifactId>commons-cli</artifactId>
-	  <version>1.2</version>
-	 </dependency>
+		<dependency>
+			<groupId>commons-cli</groupId>
+			<artifactId>commons-cli</artifactId>
+			<version>1.2</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -46,6 +46,15 @@
 		</resources>
 		
 		<plugins>
+			<!-- jgitflow plugin to create releases -->
+			<plugin>
+				<groupId>external.atlassian.jgitflow</groupId>
+				<artifactId>jgitflow-maven-plugin</artifactId>
+				<version>1.0-m5.1</version>
+				<configuration>
+					<noDeploy>true</noDeploy>
+				</configuration>
+			</plugin>
 			<!-- Assembly plugin to create standalone java application -->
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
