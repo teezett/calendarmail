@@ -2,7 +2,7 @@ package de.heinersyndikat.tools.calendarmail;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
+import java.nio.file.Paths;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +86,22 @@ public class CalendarMail {
 		}
 	}
 
+	private static void connectDav() {
+//		WebDAVAccess colabori = new WebDAVAccess("colabori.de", "info@heinersyndikat.de", "*****");
+//		colabori.getProperties("https://colabori.de/remote.php/caldav/calendars/info%40heinersyndikat.de/defaultcalendar1_shared_by_heinersyndikat@Sven.bauhan.name");
+//		colabori.listResources("https://colabori.de/remote.php/caldav/calendars/info%40heinersyndikat.de/defaultcalendar1_shared_by_heinersyndikat@Sven.bauhan.name");
+		JackrabbitDAVAccess website = new JackrabbitDAVAccess("www.heinersyndikat.de", null, null);
+		String websiteCal = "http://www.heinersyndikat.de/?plugin=all-in-one-event-calendar&controller=ai1ec_exporter_controller&action=export_events&cb=1544323684";
+		website.getProperties(websiteCal);
+		website.listResources(websiteCal);
+		String cwd = Paths.get(".").toAbsolutePath().normalize().toString();
+		logger.info("CWD: " + cwd);
+		website.copy(websiteCal, "cal.ics", true);
+		SardineDAVAccess website2 = new SardineDAVAccess("www.heinersyndikat.de", null, null);
+		website2.read(websiteCal);
+		website2.list(websiteCal);
+	}
+	
 	/**
 	 * Main function.
 	 *
@@ -106,5 +122,8 @@ public class CalendarMail {
 			logger.error("Parse Error: " + ex.getLocalizedMessage());
 			System.exit(1);
 		}
+		// WebDAV access
+		connectDav();
 	}
+	
 }
