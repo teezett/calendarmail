@@ -1,9 +1,15 @@
 package de.heinersyndikat.tools.calendarmail;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigBeanFactory;
+import com.typesafe.config.ConfigFactory;
 import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.cli.BasicParser;
@@ -109,23 +115,25 @@ public class CalendarMail {
 		console.printf(password + "\n");
 	}
 
+	protected static void loadConfig() {
+		Config conf = ConfigFactory.load();
+		Config calendarmail = conf.getConfig("calendarmail");
+		List<String> monthly = calendarmail.getStringList("receivers.monthly");
+		String monthly_mails = String.join("; ", monthly);
+		logger.info("monthly mails: " + monthly_mails);
+		List<CalendarBean> calendars = calendarmail.getConfigList("calendars").stream()
+						.map(c->ConfigBeanFactory.create(c, CalendarBean.class))
+						.collect(Collectors.toList());
+		String calendar_names = calendars.stream().map(CalendarBean::getHostname)
+						.collect(Collectors.joining(", "));
+		logger.info("Loaded calendars: " + calendar_names);
+	}
+	
 	private static void connectDav() {
-//		WebDAVAccess colabori = new WebDAVAccess("colabori.de", "info@heinersyndikat.de", "*****");
-//		colabori.getProperties("https://colabori.de/remote.php/caldav/calendars/info%40heinersyndikat.de/defaultcalendar1_shared_by_heinersyndikat@Sven.bauhan.name");
-//		colabori.listResources("https://colabori.de/remote.php/caldav/calendars/info%40heinersyndikat.de/defaultcalendar1_shared_by_heinersyndikat@Sven.bauhan.name");
-//		JackrabbitDAVAccess website = new JackrabbitDAVAccess("www.heinersyndikat.de", null, null);
 		String websiteCal = "http://www.heinersyndikat.de/?plugin=all-in-one-event-calendar&controller=ai1ec_exporter_controller&action=export_events&cb=1544323684";
-//		website.getProperties(websiteCal);
-//		website.listResources(websiteCal);
-//		String cwd = Paths.get(".").toAbsolutePath().normalize().toString();
-//		logger.info("CWD: " + cwd);
-//		website.copy(websiteCal, "cal.ics", true);
 		SardineDAVAccess website2 = new SardineDAVAccess("www.heinersyndikat.de", null, null);
 		website2.read(websiteCal);
 		website2.list(websiteCal);
-		final String cloudCal = "https://colabori.de/remote.php/caldav/calendars/info%40heinersyndikat.de/defaultcalendar1_shared_by_heinersyndikat@Sven.bauhan.name";
-		SardineDAVAccess cloud = new SardineDAVAccess("colabori.de", username, password);
-		cloud.list(cloudCal);
 	}
 
 	/**
@@ -148,8 +156,9 @@ public class CalendarMail {
 			logger.error("Parse Error: " + ex.getLocalizedMessage());
 			System.exit(1);
 		}
+		loadConfig();
 		// read credentials
-		readPassword();
+//		readPassword();
 		// WebDAV access
 		connectDav();
 	}
