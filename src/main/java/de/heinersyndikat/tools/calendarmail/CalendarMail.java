@@ -2,11 +2,11 @@ package de.heinersyndikat.tools.calendarmail;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigBeanFactory;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -90,7 +90,7 @@ public class CalendarMail {
 		if (cmdline.hasOption("f")) {
 			logger.debug("found option -f");
 			String filename = cmdline.getOptionValue("f");
-			// @todo: implement
+			CalendarMailConfiguration.INSTANCE.setConfigurationFile(filename);
 		}
 	}
 
@@ -116,24 +116,33 @@ public class CalendarMail {
 	}
 
 	protected static void loadConfig() {
-		Config conf = ConfigFactory.load();
-		Config calendarmail = conf.getConfig("calendarmail");
-		List<String> monthly = calendarmail.getStringList("receivers.monthly");
-		String monthly_mails = String.join("; ", monthly);
-		logger.info("monthly mails: " + monthly_mails);
-		List<CalendarBean> calendars = calendarmail.getConfigList("calendars").stream()
-						.map(c->ConfigBeanFactory.create(c, CalendarBean.class))
-						.collect(Collectors.toList());
-		String calendar_names = calendars.stream().map(CalendarBean::getHostname)
-						.collect(Collectors.joining(", "));
-		logger.info("Loaded calendars: " + calendar_names);
+		try {
+			Config conf = ConfigFactory.load();
+			Config calendarmail = conf.getConfig("calendarmail");
+			List<String> monthly = calendarmail.getStringList("receivers.monthly");
+			String monthly_mails = String.join("; ", monthly);
+			logger.info("monthly mails: " + monthly_mails);
+			List<CalendarBean> calendars = calendarmail.getConfigList("calendars").stream()
+							.map(c -> ConfigBeanFactory.create(c, CalendarBean.class))
+							.collect(Collectors.toList());
+			String calendar_names = calendars.stream().map(CalendarBean::getHostname)
+							.collect(Collectors.joining(", "));
+			logger.info("Loaded calendars: " + calendar_names);
+		} catch (ConfigException ex) {
+			logger.warn("Loading configuration: " + ex.getLocalizedMessage());
+		}
 	}
-	
+
 	private static void connectDav() {
-		String websiteCal = "http://www.heinersyndikat.de/?plugin=all-in-one-event-calendar&controller=ai1ec_exporter_controller&action=export_events&cb=1544323684";
-		SardineDAVAccess website2 = new SardineDAVAccess("www.heinersyndikat.de", null, null);
-		website2.read(websiteCal);
-		website2.list(websiteCal);
+		List<CalendarBean> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
+		if (calendars == null) {
+			return;
+		}
+		calendars.stream().forEach((cal) -> {
+			SardineDAVAccess website = new SardineDAVAccess(cal.getHostname(), cal.getUsername(), cal.getPassword());
+			website.read(cal.getAddress());
+			website.list(cal.getAddress());
+		});
 	}
 
 	/**
@@ -146,7 +155,7 @@ public class CalendarMail {
 		load_properties();
 		String version = appProperties.getProperty("application.version", "");
 		String app_name = appProperties.getProperty("application.name", "CalendarMail");
-		logger.info(app_name + " " + version + ": Sending reminder for calendar entries via email");
+		System.out.println(app_name + " " + version + ": Sending reminder for calendar entries via email");
 		// parse command line parameters
 		CommandLineParser parser = new BasicParser();
 		try {
@@ -156,9 +165,8 @@ public class CalendarMail {
 			logger.error("Parse Error: " + ex.getLocalizedMessage());
 			System.exit(1);
 		}
-		loadConfig();
-		// read credentials
-//		readPassword();
+		// load configuration
+		CalendarMailConfiguration.INSTANCE.load();
 		// WebDAV access
 		connectDav();
 	}
