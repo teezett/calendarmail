@@ -7,9 +7,23 @@ import com.typesafe.config.ConfigFactory;
 import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import net.fortuna.ical4j.data.CalendarBuilder;
+import net.fortuna.ical4j.data.ParserException;
+import net.fortuna.ical4j.filter.Filter;
+import net.fortuna.ical4j.filter.PeriodRule;
+import net.fortuna.ical4j.filter.Rule;
+import net.fortuna.ical4j.model.Calendar;
+import net.fortuna.ical4j.model.Component;
+import net.fortuna.ical4j.model.ComponentList;
+import net.fortuna.ical4j.model.DateTime;
+import net.fortuna.ical4j.model.Dur;
+import net.fortuna.ical4j.model.Period;
+import net.fortuna.ical4j.model.Property;
+import net.fortuna.ical4j.model.component.VEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.cli.BasicParser;
@@ -40,7 +54,7 @@ public class CalendarMail {
 	final static String APP_PROP_RESSOURCE = "/application.properties";
 	private static String username;
 	private static String password;
-
+	
 	/**
 	 * Load the application properties.
 	 */
@@ -68,10 +82,10 @@ public class CalendarMail {
 		Options options = new Options();
 		Option help = new Option("h", "print this message");
 		options.addOption(help);
-		Option readFile = OptionBuilder.withArgName("file")
-						.hasArg()
-						.withDescription("configuration file to be read")
-						.create("f");
+		OptionBuilder.withArgName("file");
+		OptionBuilder.hasArg(true);
+		OptionBuilder.withDescription("configuration file to be read");
+		Option readFile = OptionBuilder.create("f");
 		options.addOption(readFile);
 		return options;
 	}
@@ -140,11 +154,46 @@ public class CalendarMail {
 		}
 		calendars.stream().forEach((cal) -> {
 			SardineDAVAccess website = new SardineDAVAccess(cal.getHostname(), cal.getUsername(), cal.getPassword());
-			website.read(cal.getAddress());
-			website.list(cal.getAddress());
+			Calendar iCal = new Calendar();
+			InputStream is = website.read(cal.getAddress());
+			if (is != null) {
+				CalendarBuilder builder = new CalendarBuilder();
+				try {
+					iCal = builder.build(is);
+					manageICal(iCal);
+				} catch (IOException ex) {
+					logger.error("I/O Error: " + ex.getLocalizedMessage());
+				} catch (ParserException ex) {
+					logger.error("Parse Error: " + ex.getLocalizedMessage());
+				}
+			}
+//			website.list(cal.getAddress());
 		});
 	}
 
+	public static void manageICal(Calendar iCal) {
+		ComponentList components = iCal.getComponents(Component.VEVENT);
+		logger.info("Found " + components.size() + " events in calendar");
+		components.stream().forEach((comp) -> {
+			VEvent event = (VEvent) comp;
+			logger.info("Found event with summary " + event.getProperty(Property.SUMMARY).getValue());
+		});
+		java.util.Calendar today = java.util.Calendar.getInstance();
+		today.set(java.util.Calendar.HOUR_OF_DAY, 0);
+		today.clear(java.util.Calendar.MINUTE);
+		today.clear(java.util.Calendar.SECOND);
+		Period period = new Period(new DateTime(today.getTime()), new Dur(3, 0, 0, 0));
+		Rule[] rules = { new PeriodRule(period) };
+		Filter filter = new Filter(rules, Filter.MATCH_ALL);
+		Collection events = filter.filter(iCal.getComponents(Component.VEVENT));
+		logger.info("Found " + events.size() + " matching events in calendar");
+		events.stream().forEach((ev) -> {
+			logger.debug("Found class type " + ev.getClass());
+			VEvent event = (VEvent) ev;
+			logger.info("Found event with summary " + event.getProperty(Property.SUMMARY).getValue());
+		});
+	}
+	
 	/**
 	 * Main function.
 	 *
