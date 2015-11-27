@@ -1,9 +1,15 @@
 package de.heinersyndikat.tools.calendarmail;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigBeanFactory;
+import com.typesafe.config.ConfigException;
+import com.typesafe.config.ConfigFactory;
+import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.cli.BasicParser;
@@ -32,6 +38,8 @@ public class CalendarMail {
 	 */
 	static Properties appProperties = new Properties();
 	final static String APP_PROP_RESSOURCE = "/application.properties";
+	private static String username;
+	private static String password;
 
 	/**
 	 * Load the application properties.
@@ -70,7 +78,7 @@ public class CalendarMail {
 
 	/**
 	 * Parse commandline for given parameters
-	 * 
+	 *
 	 * @param cmdline commandline with parmeters
 	 */
 	protected static void start(CommandLine cmdline) {
@@ -82,8 +90,59 @@ public class CalendarMail {
 		if (cmdline.hasOption("f")) {
 			logger.debug("found option -f");
 			String filename = cmdline.getOptionValue("f");
-			// @todo: implement
+			CalendarMailConfiguration.INSTANCE.setConfigurationFile(filename);
 		}
+	}
+
+	protected static void readPassword() {
+		Console console = System.console();
+		if (console == null) {
+			logger.error("Cannot get console");
+			return;
+		}
+		final String default_user = "info@heinersyndikat.de";
+		console.printf("Please enter your username[%s]: ", default_user);
+		username = console.readLine();
+		if (username.equals("")) {
+			username = default_user;
+		}
+		console.printf(username + "\n");
+
+		console.printf("Please enter your password: ");
+		char[] passwordChars = console.readPassword();
+		password = new String(passwordChars);
+
+		console.printf(password + "\n");
+	}
+
+	protected static void loadConfig() {
+		try {
+			Config conf = ConfigFactory.load();
+			Config calendarmail = conf.getConfig("calendarmail");
+			List<String> monthly = calendarmail.getStringList("receivers.monthly");
+			String monthly_mails = String.join("; ", monthly);
+			logger.info("monthly mails: " + monthly_mails);
+			List<CalendarBean> calendars = calendarmail.getConfigList("calendars").stream()
+							.map(c -> ConfigBeanFactory.create(c, CalendarBean.class))
+							.collect(Collectors.toList());
+			String calendar_names = calendars.stream().map(CalendarBean::getHostname)
+							.collect(Collectors.joining(", "));
+			logger.info("Loaded calendars: " + calendar_names);
+		} catch (ConfigException ex) {
+			logger.warn("Loading configuration: " + ex.getLocalizedMessage());
+		}
+	}
+
+	private static void connectDav() {
+		List<CalendarBean> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
+		if (calendars == null) {
+			return;
+		}
+		calendars.stream().forEach((cal) -> {
+			SardineDAVAccess website = new SardineDAVAccess(cal.getHostname(), cal.getUsername(), cal.getPassword());
+			website.read(cal.getAddress());
+			website.list(cal.getAddress());
+		});
 	}
 
 	/**
@@ -96,7 +155,7 @@ public class CalendarMail {
 		load_properties();
 		String version = appProperties.getProperty("application.version", "");
 		String app_name = appProperties.getProperty("application.name", "CalendarMail");
-		logger.info(app_name + " " + version + ": Sending reminder for calendar entries via email");
+		System.out.println(app_name + " " + version + ": Sending reminder for calendar entries via email");
 		// parse command line parameters
 		CommandLineParser parser = new BasicParser();
 		try {
@@ -106,5 +165,10 @@ public class CalendarMail {
 			logger.error("Parse Error: " + ex.getLocalizedMessage());
 			System.exit(1);
 		}
+		// load configuration
+		CalendarMailConfiguration.INSTANCE.load();
+		// WebDAV access
+		connectDav();
 	}
+
 }
