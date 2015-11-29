@@ -7,6 +7,10 @@ import com.typesafe.config.ConfigFactory;
 import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
@@ -24,6 +28,9 @@ import net.fortuna.ical4j.model.Dur;
 import net.fortuna.ical4j.model.Period;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.component.VEvent;
+import net.fortuna.ical4j.model.property.DtEnd;
+import net.fortuna.ical4j.model.property.DtStart;
+import net.fortuna.ical4j.model.property.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.cli.BasicParser;
@@ -54,7 +61,7 @@ public class CalendarMail {
 	final static String APP_PROP_RESSOURCE = "/application.properties";
 	private static String username;
 	private static String password;
-	
+
 	/**
 	 * Load the application properties.
 	 */
@@ -152,23 +159,68 @@ public class CalendarMail {
 		if (calendars == null) {
 			return;
 		}
-		calendars.stream().forEach((cal) -> {
-			SardineDAVAccess website = new SardineDAVAccess(cal.getHostname(), cal.getUsername(), cal.getPassword());
-			Calendar iCal = new Calendar();
-			InputStream is = website.read(cal.getAddress());
-			if (is != null) {
-				CalendarBuilder builder = new CalendarBuilder();
-				try {
-					iCal = builder.build(is);
-					manageICal(iCal);
-				} catch (IOException ex) {
-					logger.error("I/O Error: " + ex.getLocalizedMessage());
-				} catch (ParserException ex) {
-					logger.error("Parse Error: " + ex.getLocalizedMessage());
-				}
-			}
-//			website.list(cal.getAddress());
-		});
+		String all_events = calendars.stream()
+						.map((cal) -> {
+							SardineDAVAccess website = new SardineDAVAccess(cal.getHostname(), cal.getUsername(), cal.getPassword());
+							InputStream is = website.read(cal.getAddress());
+							Calendar iCal = new Calendar();
+							if (is != null) {
+								CalendarBuilder builder = new CalendarBuilder();
+								try {
+									iCal = builder.build(is);
+								} catch (IOException ex) {
+									logger.error("I/O Error: " + ex.getLocalizedMessage());
+								} catch (ParserException ex) {
+									logger.error("Parse Error: " + ex.getLocalizedMessage());
+								}
+							}
+							return iCal;
+						})
+						.map(CalendarMail::extractEvents)
+						.collect(Collectors.joining("\n"));
+		logger.info("All Events:\n" + all_events);
+	}
+
+	public static String extractEvents(Calendar iCal) {
+		ComponentList components = iCal.getComponents(Component.VEVENT);
+		logger.info("Found " + components.size() + " events in calendar");
+		java.util.Calendar today = java.util.Calendar.getInstance();
+		today.set(java.util.Calendar.HOUR_OF_DAY, 0);
+		today.clear(java.util.Calendar.MINUTE);
+		today.clear(java.util.Calendar.SECOND);
+		Period period = new Period(new DateTime(today.getTime()), new Dur(30, 0, 0, 0));
+		Rule[] rules = {new PeriodRule(period)};
+		Filter filter = new Filter(rules, Filter.MATCH_ALL);
+		Collection events = filter.filter(iCal.getComponents(Component.VEVENT));
+		logger.info("Found " + events.size() + " matching events in calendar");
+		return (String) events.stream()
+						.map((ev) -> {
+							DateTimeFormatter format = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+							VEvent event = (VEvent) ev;
+							StringBuilder builder = new StringBuilder();
+							DtStart start = event.getStartDate();
+							if (start != null) {
+								Instant startDate = start.getDate().toInstant();
+								LocalDateTime startLocal = LocalDateTime.ofInstant(startDate, ZoneId.systemDefault());
+								builder.append(startLocal.format(format));
+								logger.debug("Start: " + startLocal.format(format));
+								DtEnd ending = event.getEndDate(true);
+								if (ending != null) {
+									LocalDateTime endLocal = LocalDateTime
+									.ofInstant(ending.getDate().toInstant(), ZoneId.systemDefault());
+									builder.append(" - ").append(endLocal.format(format));
+								}
+								builder.append("\n");
+							}
+							builder.append(event.getProperty(Property.SUMMARY).getValue()).append("\n");
+							Location loc = event.getLocation();
+							if (loc != null) {
+								builder.append("Ort: ").append(loc.getValue()).append("\n");
+								logger.debug("Location: " + loc.getValue());
+							}
+							return builder.toString();
+						})
+						.collect(Collectors.joining("\n"));
 	}
 
 	public static void manageICal(Calendar iCal) {
@@ -183,7 +235,7 @@ public class CalendarMail {
 		today.clear(java.util.Calendar.MINUTE);
 		today.clear(java.util.Calendar.SECOND);
 		Period period = new Period(new DateTime(today.getTime()), new Dur(3, 0, 0, 0));
-		Rule[] rules = { new PeriodRule(period) };
+		Rule[] rules = {new PeriodRule(period)};
 		Filter filter = new Filter(rules, Filter.MATCH_ALL);
 		Collection events = filter.filter(iCal.getComponents(Component.VEVENT));
 		logger.info("Found " + events.size() + " matching events in calendar");
@@ -193,7 +245,7 @@ public class CalendarMail {
 			logger.info("Found event with summary " + event.getProperty(Property.SUMMARY).getValue());
 		});
 	}
-	
+
 	/**
 	 * Main function.
 	 *
