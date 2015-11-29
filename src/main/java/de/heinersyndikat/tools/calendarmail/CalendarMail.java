@@ -1,15 +1,10 @@
 package de.heinersyndikat.tools.calendarmail;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigBeanFactory;
 import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Properties;
-import java.util.stream.Collectors;
-import net.fortuna.ical4j.data.ParserException;
 import net.fortuna.ical4j.filter.Filter;
 import net.fortuna.ical4j.filter.PeriodRule;
 import net.fortuna.ical4j.filter.Rule;
@@ -44,8 +39,6 @@ public class CalendarMail {
 	 */
 	static Properties appProperties = new Properties();
 	final static String APP_PROP_RESSOURCE = "/application.properties";
-//	private static String username;
-//	private static String password;
 
 	/**
 	 * Load the application properties.
@@ -100,46 +93,7 @@ public class CalendarMail {
 		}
 	}
 
-//	protected static void readPassword() {
-//		Console console = System.console();
-//		if (console == null) {
-//			logger.error("Cannot get console");
-//			return;
-//		}
-//		final String default_user = "info@heinersyndikat.de";
-//		console.printf("Please enter your username[%s]: ", default_user);
-//		username = console.readLine();
-//		if (username.equals("")) {
-//			username = default_user;
-//		}
-//		console.printf(username + "\n");
-//
-//		console.printf("Please enter your password: ");
-//		char[] passwordChars = console.readPassword();
-//		password = new String(passwordChars);
-//
-//		console.printf(password + "\n");
-//	}
-
-	protected static void loadConfig() {
-		try {
-			Config conf = ConfigFactory.load();
-			Config calendarmail = conf.getConfig("calendarmail");
-			List<String> monthly = calendarmail.getStringList("receivers.monthly");
-			String monthly_mails = String.join("; ", monthly);
-			logger.info("monthly mails: " + monthly_mails);
-			List<RemoteCalendar> calendars = calendarmail.getConfigList("calendars").stream()
-							.map(c -> ConfigBeanFactory.create(c, RemoteCalendar.class))
-							.collect(Collectors.toList());
-			String calendar_names = calendars.stream().map(RemoteCalendar::getHostname)
-							.collect(Collectors.joining(", "));
-			logger.info("Loaded calendars: " + calendar_names);
-		} catch (ConfigException ex) {
-			logger.warn("Loading configuration: " + ex.getLocalizedMessage());
-		}
-	}
-
-	private static void connectDav() {
+	private static void read_calendar_events() {
 		List<RemoteCalendar> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
 		if (calendars == null) {
 			return;
@@ -153,17 +107,7 @@ public class CalendarMail {
 		Rule[] rules = {new PeriodRule(period)};
 		Filter filter = new Filter(rules, Filter.MATCH_ALL);
 		// get String representation for all calendars
-		String all_events = calendars.stream()
-						.map(cal -> {
-							try {
-								return cal.toString(filter);
-							} catch (IOException | ParserException ex) {
-								logger.warn(ex.getLocalizedMessage());
-							}
-							return "";
-						})
-						.filter(txt -> !txt.isEmpty())
-						.collect(Collectors.joining("\n"));
+		String all_events = RemoteCalendar.filterAll(calendars, filter);
 		logger.info("All Events:\n" + all_events);
 	}
 
@@ -188,9 +132,15 @@ public class CalendarMail {
 			System.exit(1);
 		}
 		// load configuration
-		CalendarMailConfiguration.INSTANCE.load();
+		try {
+			CalendarMailConfiguration.INSTANCE.load();
+		} catch (ConfigException ex) {
+			logger.error("Configuration failed!");
+			logger.error(ex.getLocalizedMessage());
+			System.exit(2);
+		}
 		// WebDAV access
-		connectDav();
+		read_calendar_events();
 	}
 
 }
