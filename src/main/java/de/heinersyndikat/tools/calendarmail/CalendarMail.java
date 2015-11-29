@@ -4,33 +4,18 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigBeanFactory;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
-import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
-import net.fortuna.ical4j.data.CalendarBuilder;
 import net.fortuna.ical4j.data.ParserException;
 import net.fortuna.ical4j.filter.Filter;
 import net.fortuna.ical4j.filter.PeriodRule;
 import net.fortuna.ical4j.filter.Rule;
-import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.Component;
-import net.fortuna.ical4j.model.ComponentList;
 import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.Dur;
 import net.fortuna.ical4j.model.Period;
-import net.fortuna.ical4j.model.Property;
-import net.fortuna.ical4j.model.component.VEvent;
-import net.fortuna.ical4j.model.property.DtEnd;
-import net.fortuna.ical4j.model.property.DtStart;
-import net.fortuna.ical4j.model.property.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.cli.BasicParser;
@@ -59,8 +44,8 @@ public class CalendarMail {
 	 */
 	static Properties appProperties = new Properties();
 	final static String APP_PROP_RESSOURCE = "/application.properties";
-	private static String username;
-	private static String password;
+//	private static String username;
+//	private static String password;
 
 	/**
 	 * Load the application properties.
@@ -115,26 +100,26 @@ public class CalendarMail {
 		}
 	}
 
-	protected static void readPassword() {
-		Console console = System.console();
-		if (console == null) {
-			logger.error("Cannot get console");
-			return;
-		}
-		final String default_user = "info@heinersyndikat.de";
-		console.printf("Please enter your username[%s]: ", default_user);
-		username = console.readLine();
-		if (username.equals("")) {
-			username = default_user;
-		}
-		console.printf(username + "\n");
-
-		console.printf("Please enter your password: ");
-		char[] passwordChars = console.readPassword();
-		password = new String(passwordChars);
-
-		console.printf(password + "\n");
-	}
+//	protected static void readPassword() {
+//		Console console = System.console();
+//		if (console == null) {
+//			logger.error("Cannot get console");
+//			return;
+//		}
+//		final String default_user = "info@heinersyndikat.de";
+//		console.printf("Please enter your username[%s]: ", default_user);
+//		username = console.readLine();
+//		if (username.equals("")) {
+//			username = default_user;
+//		}
+//		console.printf(username + "\n");
+//
+//		console.printf("Please enter your password: ");
+//		char[] passwordChars = console.readPassword();
+//		password = new String(passwordChars);
+//
+//		console.printf(password + "\n");
+//	}
 
 	protected static void loadConfig() {
 		try {
@@ -143,10 +128,10 @@ public class CalendarMail {
 			List<String> monthly = calendarmail.getStringList("receivers.monthly");
 			String monthly_mails = String.join("; ", monthly);
 			logger.info("monthly mails: " + monthly_mails);
-			List<CalendarBean> calendars = calendarmail.getConfigList("calendars").stream()
-							.map(c -> ConfigBeanFactory.create(c, CalendarBean.class))
+			List<RemoteCalendar> calendars = calendarmail.getConfigList("calendars").stream()
+							.map(c -> ConfigBeanFactory.create(c, RemoteCalendar.class))
 							.collect(Collectors.toList());
-			String calendar_names = calendars.stream().map(CalendarBean::getHostname)
+			String calendar_names = calendars.stream().map(RemoteCalendar::getHostname)
 							.collect(Collectors.joining(", "));
 			logger.info("Loaded calendars: " + calendar_names);
 		} catch (ConfigException ex) {
@@ -155,35 +140,11 @@ public class CalendarMail {
 	}
 
 	private static void connectDav() {
-		List<CalendarBean> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
+		List<RemoteCalendar> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
 		if (calendars == null) {
 			return;
 		}
-		String all_events = calendars.stream()
-						.map((cal) -> {
-							SardineDAVAccess website = new SardineDAVAccess(cal.getHostname(), cal.getUsername(), cal.getPassword());
-							InputStream is = website.read(cal.getAddress());
-							Calendar iCal = new Calendar();
-							if (is != null) {
-								CalendarBuilder builder = new CalendarBuilder();
-								try {
-									iCal = builder.build(is);
-								} catch (IOException ex) {
-									logger.error("I/O Error: " + ex.getLocalizedMessage());
-								} catch (ParserException ex) {
-									logger.error("Parse Error: " + ex.getLocalizedMessage());
-								}
-							}
-							return iCal;
-						})
-						.map(CalendarMail::extractEvents)
-						.collect(Collectors.joining("\n"));
-		logger.info("All Events:\n" + all_events);
-	}
-
-	public static String extractEvents(Calendar iCal) {
-		ComponentList components = iCal.getComponents(Component.VEVENT);
-		logger.info("Found " + components.size() + " events in calendar");
+		// define filter
 		java.util.Calendar today = java.util.Calendar.getInstance();
 		today.set(java.util.Calendar.HOUR_OF_DAY, 0);
 		today.clear(java.util.Calendar.MINUTE);
@@ -191,59 +152,19 @@ public class CalendarMail {
 		Period period = new Period(new DateTime(today.getTime()), new Dur(30, 0, 0, 0));
 		Rule[] rules = {new PeriodRule(period)};
 		Filter filter = new Filter(rules, Filter.MATCH_ALL);
-		Collection events = filter.filter(iCal.getComponents(Component.VEVENT));
-		logger.info("Found " + events.size() + " matching events in calendar");
-		return (String) events.stream()
-						.map((ev) -> {
-							DateTimeFormatter format = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-							VEvent event = (VEvent) ev;
-							StringBuilder builder = new StringBuilder();
-							DtStart start = event.getStartDate();
-							if (start != null) {
-								Instant startDate = start.getDate().toInstant();
-								LocalDateTime startLocal = LocalDateTime.ofInstant(startDate, ZoneId.systemDefault());
-								builder.append(startLocal.format(format));
-								logger.debug("Start: " + startLocal.format(format));
-								DtEnd ending = event.getEndDate(true);
-								if (ending != null) {
-									LocalDateTime endLocal = LocalDateTime
-									.ofInstant(ending.getDate().toInstant(), ZoneId.systemDefault());
-									builder.append(" - ").append(endLocal.format(format));
-								}
-								builder.append("\n");
+		// get String representation for all calendars
+		String all_events = calendars.stream()
+						.map(cal -> {
+							try {
+								return cal.toString(filter);
+							} catch (IOException | ParserException ex) {
+								logger.warn(ex.getLocalizedMessage());
 							}
-							builder.append(event.getProperty(Property.SUMMARY).getValue()).append("\n");
-							Location loc = event.getLocation();
-							if (loc != null) {
-								builder.append("Ort: ").append(loc.getValue()).append("\n");
-								logger.debug("Location: " + loc.getValue());
-							}
-							return builder.toString();
+							return "";
 						})
+						.filter(txt -> !txt.isEmpty())
 						.collect(Collectors.joining("\n"));
-	}
-
-	public static void manageICal(Calendar iCal) {
-		ComponentList components = iCal.getComponents(Component.VEVENT);
-		logger.info("Found " + components.size() + " events in calendar");
-		components.stream().forEach((comp) -> {
-			VEvent event = (VEvent) comp;
-			logger.info("Found event with summary " + event.getProperty(Property.SUMMARY).getValue());
-		});
-		java.util.Calendar today = java.util.Calendar.getInstance();
-		today.set(java.util.Calendar.HOUR_OF_DAY, 0);
-		today.clear(java.util.Calendar.MINUTE);
-		today.clear(java.util.Calendar.SECOND);
-		Period period = new Period(new DateTime(today.getTime()), new Dur(3, 0, 0, 0));
-		Rule[] rules = {new PeriodRule(period)};
-		Filter filter = new Filter(rules, Filter.MATCH_ALL);
-		Collection events = filter.filter(iCal.getComponents(Component.VEVENT));
-		logger.info("Found " + events.size() + " matching events in calendar");
-		events.stream().forEach((ev) -> {
-			logger.debug("Found class type " + ev.getClass());
-			VEvent event = (VEvent) ev;
-			logger.info("Found event with summary " + event.getProperty(Property.SUMMARY).getValue());
-		});
+		logger.info("All Events:\n" + all_events);
 	}
 
 	/**

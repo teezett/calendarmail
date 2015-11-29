@@ -24,7 +24,7 @@ public enum CalendarMailConfiguration {
 	private Config config;
 	private String configurationFile;
 	private static final String TOP_KEY = "calendarmail";
-	private List<CalendarBean> calendars;
+	private List<RemoteCalendar> calendars;
 	
 	/**
 	 * @param confFile the confFile to set
@@ -43,9 +43,9 @@ public enum CalendarMailConfiguration {
 				config = defaultConf.getConfig(TOP_KEY);
 			}
 			calendars = config.getConfigList("calendars").stream()
-							.map(c -> ConfigBeanFactory.create(c, CalendarBean.class))
+							.map(c -> ConfigBeanFactory.create(c, RemoteCalendar.class))
 							.collect(Collectors.toList());
-			String calendar_names = getCalendars().stream().map(CalendarBean::getHostname)
+			String calendar_names = getCalendars().stream().map(RemoteCalendar::getHostname)
 							.collect(Collectors.joining(", "));
 			logger.info("Loaded calendars: " + calendar_names);
 		} catch (ConfigException ex) {
@@ -56,7 +56,7 @@ public enum CalendarMailConfiguration {
 	/**
 	 * @return the calendars
 	 */
-	public List<CalendarBean> getCalendars() {
+	public List<RemoteCalendar> getCalendars() {
 		return calendars;
 	}
 	

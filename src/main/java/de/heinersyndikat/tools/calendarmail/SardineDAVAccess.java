@@ -47,13 +47,9 @@ public class SardineDAVAccess {
 		return hostname;
 	}
 
-	public InputStream read(String uri_) {
-		InputStream is = null;
-		try {
-			is = connection.get(uri_);
-		} catch (IOException ex) {
-			logger.error("IOException: " + ex.getLocalizedMessage());
-		}
+	public InputStream read(String uri_) throws IOException {
+		InputStream is;
+		is = connection.get(uri_);
 		return is;
 	}
 	
