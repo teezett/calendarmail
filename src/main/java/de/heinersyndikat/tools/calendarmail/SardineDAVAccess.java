@@ -6,7 +6,6 @@ import com.github.sardine.SardineFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,14 +47,10 @@ public class SardineDAVAccess {
 		return hostname;
 	}
 
-	public void read(String uri_) {
-		try {
-			InputStream is = connection.get(uri_);
-			String content = IOUtils.toString(is);
-			logger.debug("Reading content: " + content);
-		} catch (IOException ex) {
-			logger.error(ex.getLocalizedMessage());
-		}
+	public InputStream read(String uri_) throws IOException {
+		InputStream is;
+		is = connection.get(uri_);
+		return is;
 	}
 	
 	public void list(String uri_) {

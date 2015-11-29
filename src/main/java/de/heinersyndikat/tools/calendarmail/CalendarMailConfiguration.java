@@ -12,52 +12,51 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Configuration singleton.
- * 
+ *
  * @author Sven Bauhan <sde@sven.bauhan.name>
  */
 public enum CalendarMailConfiguration {
+
 	INSTANCE;
-	
-	/** Logger instance */
-	private static transient final Logger logger =
-					LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
+
+	/**
+	 * Logger instance
+	 */
+	private static transient final Logger logger
+					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
 	private Config config;
 	private String configurationFile;
 	private static final String TOP_KEY = "calendarmail";
-	private List<CalendarBean> calendars;
-	
+	private List<RemoteCalendar> calendars;
+
 	/**
 	 * @param confFile the confFile to set
 	 */
 	public void setConfigurationFile(String confFile) {
 		this.configurationFile = confFile;
 	}
-	
-	public void load() {
-		try {
-			if (configurationFile != null ) {
-				Config fileConf = ConfigFactory.parseFile(new File(configurationFile));
-				config = fileConf.getConfig(TOP_KEY);
-			} else {
-				Config defaultConf = ConfigFactory.load();
-				config = defaultConf.getConfig(TOP_KEY);
-			}
-			calendars = config.getConfigList("calendars").stream()
-							.map(c -> ConfigBeanFactory.create(c, CalendarBean.class))
-							.collect(Collectors.toList());
-			String calendar_names = getCalendars().stream().map(CalendarBean::getHostname)
-							.collect(Collectors.joining(", "));
-			logger.info("Loaded calendars: " + calendar_names);
-		} catch (ConfigException ex) {
-			logger.warn("Configuration: " + ex.getLocalizedMessage());
+
+	public void load() throws ConfigException {
+		if (configurationFile != null) {
+			Config fileConf = ConfigFactory.parseFile(new File(configurationFile));
+			config = fileConf.getConfig(TOP_KEY);
+		} else {
+			Config defaultConf = ConfigFactory.load();
+			config = defaultConf.getConfig(TOP_KEY);
 		}
+		calendars = config.getConfigList("calendars").stream()
+						.map(c -> ConfigBeanFactory.create(c, RemoteCalendar.class))
+						.collect(Collectors.toList());
+		String calendar_names = getCalendars().stream().map(RemoteCalendar::getHostname)
+						.collect(Collectors.joining(", "));
+		logger.debug("Loaded calendars: " + calendar_names);
 	}
 
 	/**
 	 * @return the calendars
 	 */
-	public List<CalendarBean> getCalendars() {
+	public List<RemoteCalendar> getCalendars() {
 		return calendars;
 	}
-	
+
 }
