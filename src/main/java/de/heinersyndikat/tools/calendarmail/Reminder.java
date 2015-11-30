@@ -22,6 +22,8 @@ public class Reminder {
 	private static transient final Logger logger =
 					LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
 
+	public static final String CONFIG_KEYWORD = "reminders";
+	
 	private String name;
 	private int days_in_advance;
 	private List<String> receivers;

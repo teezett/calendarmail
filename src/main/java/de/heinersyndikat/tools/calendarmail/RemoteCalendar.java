@@ -35,6 +35,7 @@ public class RemoteCalendar {
 	private static transient final Logger logger
 					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
 
+	public static final String CONFIG_KEYWORD = "calendars";
 	public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
 	private String hostname;
