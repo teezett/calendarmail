@@ -28,6 +28,7 @@ public enum CalendarMailConfiguration {
 	private String configurationFile;
 	private static final String TOP_KEY = "calendarmail";
 	private List<RemoteCalendar> calendars;
+	private List<Reminder> reminders;
 
 	/**
 	 * @param confFile the confFile to set
@@ -49,7 +50,13 @@ public enum CalendarMailConfiguration {
 						.collect(Collectors.toList());
 		String calendar_names = getCalendars().stream().map(RemoteCalendar::getHostname)
 						.collect(Collectors.joining(", "));
-		logger.debug("Loaded calendars: " + calendar_names);
+		logger.debug("Loaded configuration for the calendars: " + calendar_names);
+		reminders = config.getConfigList("reminders").stream()
+						.map(c -> ConfigBeanFactory.create(c, Reminder.class))
+						.collect(Collectors.toList());
+		String reminder_names = getReminders().stream().map(Reminder::getName)
+						.collect(Collectors.joining(", "));
+		logger.debug("Loaded configuration for the reminders: " + reminder_names);
 	}
 
 	/**
@@ -57,6 +64,13 @@ public enum CalendarMailConfiguration {
 	 */
 	public List<RemoteCalendar> getCalendars() {
 		return calendars;
+	}
+
+	/**
+	 * @return the reminders
+	 */
+	public List<Reminder> getReminders() {
+		return reminders;
 	}
 
 }
