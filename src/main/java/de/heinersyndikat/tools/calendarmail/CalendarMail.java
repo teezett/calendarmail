@@ -117,7 +117,13 @@ public class CalendarMail {
 		}
 		// Send reminders
 		List<Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
-		reminders.stream().forEach(Reminder::sendEmail);
+		try {
+			reminders.stream().forEach(Reminder::sendEmail);
+		} catch (RuntimeException ex) {
+			Throwable internal = ex.getCause();
+			logger.error(internal.getClass().getName() + ": " + internal.getLocalizedMessage());
+			System.exit(3);
+		}
 	}
 
 }
