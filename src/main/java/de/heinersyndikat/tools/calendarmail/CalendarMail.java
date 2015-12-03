@@ -119,7 +119,7 @@ public class CalendarMail {
 		List<Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
 		try {
 			reminders.stream().forEach(Reminder::sendEmail);
-		} catch (RuntimeException ex) {
+		} catch (MailExceptionWrapper ex) {
 			Throwable internal = ex.getCause();
 			logger.error(internal.getClass().getName() + ": " + internal.getLocalizedMessage());
 			System.exit(3);

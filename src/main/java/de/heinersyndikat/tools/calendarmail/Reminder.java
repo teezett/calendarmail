@@ -92,7 +92,7 @@ public class Reminder {
 			Message message = emailServer.createMessage();
 			logger.info("Email for reminder [" + getName() + "] sent");
 		} catch (MessagingException ex) {
-			throw new RuntimeException(ex);
+			throw new MailExceptionWrapper(ex);
 		}
 	}
 
