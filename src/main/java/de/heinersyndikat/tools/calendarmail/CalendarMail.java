@@ -5,12 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Properties;
-import net.fortuna.ical4j.filter.Filter;
-import net.fortuna.ical4j.filter.PeriodRule;
-import net.fortuna.ical4j.filter.Rule;
-import net.fortuna.ical4j.model.DateTime;
-import net.fortuna.ical4j.model.Dur;
-import net.fortuna.ical4j.model.Period;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.cli.BasicParser;
@@ -54,7 +48,7 @@ public class CalendarMail {
 				logger.debug("application property: " + key + " => " + value);
 			});
 		} catch (IOException ex) {
-			logger.warn("Unable to load application properties");
+			logger.warn("Unable to load application properties: " + ex.getLocalizedMessage());
 		}
 	}
 
@@ -93,24 +87,6 @@ public class CalendarMail {
 		}
 	}
 
-	private static void read_calendar_events() {
-		List<RemoteCalendar> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
-		if (calendars == null) {
-			return;
-		}
-		// define filter
-		java.util.Calendar today = java.util.Calendar.getInstance();
-		today.set(java.util.Calendar.HOUR_OF_DAY, 0);
-		today.clear(java.util.Calendar.MINUTE);
-		today.clear(java.util.Calendar.SECOND);
-		Period period = new Period(new DateTime(today.getTime()), new Dur(30, 0, 0, 0));
-		Rule[] rules = {new PeriodRule(period)};
-		Filter filter = new Filter(rules, Filter.MATCH_ALL);
-		// get String representation for all calendars
-		String all_events = RemoteCalendar.filterAll(calendars, filter);
-		logger.info("All Events:\n" + all_events);
-	}
-
 	/**
 	 * Main function.
 	 *
@@ -139,8 +115,15 @@ public class CalendarMail {
 			logger.error(ex.getLocalizedMessage());
 			System.exit(2);
 		}
-		// WebDAV access
-		read_calendar_events();
+		// Send reminders
+		List<Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
+		try {
+			reminders.stream().forEach(Reminder::sendEmail);
+		} catch (MailExceptionWrapper ex) {
+			Throwable internal = ex.getCause();
+			logger.error(internal.getClass().getSimpleName()+ ": " + internal.getLocalizedMessage());
+			System.exit(3);
+		}
 	}
 
 }
