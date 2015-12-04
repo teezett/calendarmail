@@ -48,7 +48,7 @@ public class CalendarMail {
 				logger.debug("application property: " + key + " => " + value);
 			});
 		} catch (IOException ex) {
-			logger.warn("Unable to load application properties");
+			logger.warn("Unable to load application properties: " + ex.getLocalizedMessage());
 		}
 	}
 
@@ -121,7 +121,7 @@ public class CalendarMail {
 			reminders.stream().forEach(Reminder::sendEmail);
 		} catch (MailExceptionWrapper ex) {
 			Throwable internal = ex.getCause();
-			logger.error(internal.getClass().getName() + ": " + internal.getLocalizedMessage());
+			logger.error(internal.getClass().getSimpleName()+ ": " + internal.getLocalizedMessage());
 			System.exit(3);
 		}
 	}

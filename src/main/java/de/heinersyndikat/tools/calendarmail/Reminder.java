@@ -1,9 +1,15 @@
 package de.heinersyndikat.tools.calendarmail;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.List;
+import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.Transport;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import net.fortuna.ical4j.filter.Filter;
 import net.fortuna.ical4j.filter.PeriodRule;
 import net.fortuna.ical4j.filter.Rule;
@@ -26,11 +32,13 @@ public class Reminder {
 	private static transient final Logger logger
 					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
 
+	public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 	public static final String CONFIG_KEYWORD = "reminders";
 
 	private String name;
 	private int days_in_advance;
 	private List<String> receivers;
+//	private List<Address> addresses;
 
 	/**
 	 * Get the defined filter for this reminder.
@@ -53,8 +61,8 @@ public class Reminder {
 
 	/**
 	 * Create the email message body.
-	 * 
-	 * @return  string containing message body
+	 *
+	 * @return string containing message body
 	 */
 	protected String createBody() {
 		List<RemoteCalendar> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
@@ -70,7 +78,7 @@ public class Reminder {
 		builder.append("\nGreetings\n");
 		return builder.toString();
 	}
-	
+
 	/**
 	 * Send the emails for all calendars to given receivers.
 	 */
@@ -82,14 +90,21 @@ public class Reminder {
 			}
 			// configure email content
 			EmailServer emailServer = CalendarMailConfiguration.INSTANCE.getEmailserver();
-//		Email email = emailServer.createEmail();
-//		email.setSubject("CalendarReminder: " + getName());
-//		email.setMsg(all_events);
-//		email.addTo(emailServer.getFrom());
-//		receivers.stream().forEach(rec -> email.addBcc(rec));
-			// send email
-//		email.send();
 			Message message = emailServer.createMessage();
+			LocalDate today = LocalDate.now();
+			message.setSubject("Calendar Reminder [" + getName() + "] at "
+							+ today.format(DATE_FORMAT) );
+			message.setText(createBody());
+			receivers.stream().forEach(rec -> {
+				try {
+					Address addr = new InternetAddress(rec, true);
+					message.addRecipient(Message.RecipientType.BCC, addr);
+				} catch (MessagingException ex) {
+					logger.warn("Invalid receiver address '" + rec + "': " + ex.getLocalizedMessage());
+				}
+			});
+			// send email
+			Transport.send(message);
 			logger.info("Email for reminder [" + getName() + "] sent");
 		} catch (MessagingException ex) {
 			throw new MailExceptionWrapper(ex);
@@ -136,6 +151,15 @@ public class Reminder {
 	 */
 	public void setReceivers(List<String> receivers) {
 		this.receivers = receivers;
+//		addresses.clear();
+//		receivers.stream().forEach((rec) -> {
+//			try {
+//				Address addr = new InternetAddress(rec, true);
+//				addresses.add(addr);
+//			} catch (AddressException ex) {
+//				logger.warn("Invalid receiver address '" + rec + "': " + ex.getLocalizedMessage());
+//			}
+//		});
 	}
 
 }

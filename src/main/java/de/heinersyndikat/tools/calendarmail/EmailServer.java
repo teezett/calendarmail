@@ -9,9 +9,6 @@ import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-import org.apache.commons.mail.Email;
-import org.apache.commons.mail.EmailException;
-import org.apache.commons.mail.SimpleEmail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,19 +54,6 @@ public class EmailServer {
 		return session;
 	}
 
-//	public Email createEmail() {
-//		Email email = new SimpleEmail();
-//		email.setHostName(hostname);
-//		email.setSmtpPort(smtp_port);
-//		email.setAuthentication(username, password);
-//		email.setSSLOnConnect(ssl_connect);
-//		try {
-//			email.setFrom(from);
-//		} catch (EmailException ex) {
-//		}
-//		return email;
-//	}
-	
 	/**
 	 * Creates a new message with predefined headers.
 	 * 
@@ -81,6 +65,7 @@ public class EmailServer {
 		Address fromAddr = new InternetAddress(getFrom(), true);
 		logger.debug("From set to: " + fromAddr.toString());
 		message.setFrom(fromAddr);
+		message.addRecipient(Message.RecipientType.TO, fromAddr);
 		return message;
 	}
 
