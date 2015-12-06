@@ -111,17 +111,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-<!--		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
-			<version>1.2</version>
-			<classifier>adapters</classifier>
-		</dependency>
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging-api</artifactId>
-			<version>1.1</version>
-		</dependency>-->
 	</dependencies>
 
 	<reporting>
@@ -193,6 +182,24 @@
 					<noDeploy>true</noDeploy>
 				</configuration>
 			</plugin>
+			<plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.4.0</version>
+        <executions>
+          <execution>
+						<phase>test</phase>
+            <goals>
+              <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass>${project.mainClass}</mainClass>
+					<arguments>
+					</arguments>
+				</configuration>
+			</plugin>	
 			<!-- Assembly plugin to create standalone java application -->
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
