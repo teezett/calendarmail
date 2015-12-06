@@ -159,8 +159,8 @@ public class CalendarMail {
 	public static void decrypt_string(String encrypted) {
 		try {
 			Encryption encryption = new Encryption();
-			String decrypted = encryption.encrypt(encrypted);
-			logger.info("Decryption of '" + encrypted + "' = '" + decrypted + "'");
+			String decrypted = encryption.decrypt(encrypted);
+			logger.info("Decryption of string '" + encrypted + "' = '" + decrypted + "'");
 			System.exit(0);
 		} catch (NoSuchElementException ex) {
 			logger.error("Unable to decrypt string - no encryption password provided: " + ex.getLocalizedMessage());

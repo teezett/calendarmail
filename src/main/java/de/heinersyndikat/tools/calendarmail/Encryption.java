@@ -13,7 +13,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
-import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,6 @@ public class Encryption {
 	private static transient final Logger logger
 					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
 
-	private final StandardPBEStringEncryptor encryptor = new StandardPBEStringEncryptor();
 	private final static String DEFAULT_SALT = "12345678";
 	private final PBEParameterSpec pbeParamSpec;
 	private final SecretKey pbeKey;
