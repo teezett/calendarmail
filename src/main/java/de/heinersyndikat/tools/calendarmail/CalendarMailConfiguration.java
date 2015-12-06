@@ -6,6 +6,7 @@ import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +25,20 @@ public enum CalendarMailConfiguration {
 	 */
 	private static transient final Logger logger
 					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
-	private Config config;
-	private String configurationFile;
+	/** HOCON configuration keyword */
 	private static final String CONFIG_KEYWORD = "calendarmail";
+	/** configuration */
+	private Config config;
+	/** configuration filename from commandline option */
+	private String configurationFile;
+	/** configuration encryption password from commandline option */
+	private Optional<String> password = Optional.empty();
+	
+	/** Collection of remote calendars */
 	private List<RemoteCalendar> calendars;
+	/** Collection of reminders */
 	private List<Reminder> reminders;
+	/** email server */
 	private EmailServer emailserver;
 
 	/**
@@ -88,6 +98,20 @@ public enum CalendarMailConfiguration {
 	 */
 	public EmailServer getEmailserver() {
 		return emailserver;
+	}
+
+	/**
+	 * @return the password
+	 */
+	public String getPassword() {
+		return password.get();
+	}
+
+	/**
+	 * @param password the password to set
+	 */
+	public void setPassword(String password) {
+		this.password = Optional.of(password);
 	}
 
 }

@@ -4,6 +4,8 @@ import com.typesafe.config.ConfigException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,8 @@ public class CalendarMail {
 	static Properties appProperties = new Properties();
 	final static String APP_PROP_RESSOURCE = "/application.properties";
 
+	private static Optional<String> to_encrypt = Optional.empty();
+
 	/**
 	 * Load the application properties.
 	 */
@@ -59,13 +63,28 @@ public class CalendarMail {
 	 */
 	protected static Options defineOptions() {
 		Options options = new Options();
+		// -h help
 		Option help = new Option("h", "print this message");
 		options.addOption(help);
+		// -f configuration file
 		OptionBuilder.withArgName("file");
 		OptionBuilder.hasArg(true);
 		OptionBuilder.withDescription("configuration file to be read");
-		Option readFile = OptionBuilder.create("f");
-		options.addOption(readFile);
+		Option opt = OptionBuilder.create("f");
+		options.addOption(opt);
+		// -p encryption password
+		OptionBuilder.withArgName("password");
+		OptionBuilder.hasArg(true);
+		OptionBuilder.withDescription("encryption password");
+		opt = OptionBuilder.create("p");
+		options.addOption(opt);
+		// -e string encryption
+		OptionBuilder.withArgName("string");
+		OptionBuilder.hasArg(true);
+		OptionBuilder.withDescription("string to encrypt");
+		opt = OptionBuilder.create("e");
+		options.addOption(opt);
+		// return options definition
 		return options;
 	}
 
@@ -75,15 +94,44 @@ public class CalendarMail {
 	 * @param cmdline commandline with parmeters
 	 */
 	protected static void start(CommandLine cmdline) {
+		// help
 		if (cmdline.hasOption("h")) {
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("CalendarMail", defineOptions());
 			System.exit(0);
 		}
+		// load configuration file
 		if (cmdline.hasOption("f")) {
 			logger.debug("found option -f");
 			String filename = cmdline.getOptionValue("f");
 			CalendarMailConfiguration.INSTANCE.setConfigurationFile(filename);
+		}
+		// set encryption password
+		if (cmdline.hasOption("p")) {
+			logger.debug("found option -p");
+			String password = cmdline.getOptionValue("p");
+			CalendarMailConfiguration.INSTANCE.setPassword(password);
+		}
+		if (cmdline.hasOption("e")) {
+			logger.debug("found option -e");
+			to_encrypt = Optional.of(cmdline.getOptionValue("e"));
+		}
+	}
+
+	/**
+	 * Encrypt a given string.
+	 * 
+	 * @param unencrypted  string to be encrypted
+	 */
+	public static void encrypt_string(String unencrypted) {
+		Encryption encryption = new Encryption();
+		try {
+			String encrypted = encryption.encrypt(unencrypted);
+			logger.info("Encryption of '" + unencrypted + "' = '" + encrypted + "'");
+			System.exit(0);
+		} catch (NoSuchElementException ex) {
+			logger.error("Unable to encrypt string - no encryption password provided: " + ex.getLocalizedMessage());
+			System.exit(4);
 		}
 	}
 
@@ -97,7 +145,7 @@ public class CalendarMail {
 		load_properties();
 		String version = appProperties.getProperty("application.version", "");
 		String app_name = appProperties.getProperty("application.name", "CalendarMail");
-		System.out.println(app_name + " " + version + ": Sending reminder for calendar entries via email");
+		System.out.println(app_name + " [" + version + "]: Sending reminder for calendar entries via email");
 		// parse command line parameters
 		CommandLineParser parser = new BasicParser();
 		try {
@@ -107,6 +155,8 @@ public class CalendarMail {
 			logger.error("Parse Error: " + ex.getLocalizedMessage());
 			System.exit(1);
 		}
+		// encrypt given string
+		to_encrypt.ifPresent(CalendarMail::encrypt_string);
 		// load configuration
 		try {
 			CalendarMailConfiguration.INSTANCE.load();
@@ -121,7 +171,7 @@ public class CalendarMail {
 			reminders.stream().forEach(Reminder::sendEmail);
 		} catch (MailExceptionWrapper ex) {
 			Throwable internal = ex.getCause();
-			logger.error(internal.getClass().getSimpleName()+ ": " + internal.getLocalizedMessage());
+			logger.error(internal.getClass().getSimpleName() + ": " + internal.getLocalizedMessage());
 			System.exit(3);
 		}
 	}
