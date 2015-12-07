@@ -30,7 +30,7 @@
 			<version>1.6.6</version>
 		</dependency>
 		<!-- javadoc -->
-		<dependency>
+<!--		<dependency>
 			<groupId>org.apache.maven.plugins</groupId>
 			<artifactId>maven-javadoc-plugin</artifactId>
 			<version>2.10.3</version>
@@ -48,7 +48,7 @@
 					<artifactId>slf4j-nop</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
+		</dependency>-->
 		<!-- command line options parser -->
 		<dependency>
 			<groupId>commons-cli</groupId>
@@ -92,7 +92,7 @@
 			<version>1.3.2</version>
 		</dependency>
 		<!-- WebDAV -->
-		<dependency>
+<!--		<dependency>
 			<groupId>org.apache.jackrabbit</groupId>
 			<artifactId>jackrabbit-webdav</artifactId>
 			<version>2.2.13</version>
@@ -110,7 +110,18 @@
 					<artifactId>log4j</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>-->
+<!--		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.2</version>
+			<classifier>adapters</classifier>
 		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging-api</artifactId>
+			<version>1.1</version>
+		</dependency>-->
 	</dependencies>
 
 	<reporting>

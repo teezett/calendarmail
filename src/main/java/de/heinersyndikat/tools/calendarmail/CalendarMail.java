@@ -197,6 +197,11 @@ public class CalendarMail {
 		// load configuration
 		try {
 			CalendarMailConfiguration.INSTANCE.load();
+		} catch (MailExceptionWrapper ex) {
+			logger.error("Encryption failed!");
+			Throwable internal = ex.getCause();
+			logger.error(internal.getClass().getSimpleName() + ": " + internal.getLocalizedMessage());
+			System.exit(5);
 		} catch (ConfigException ex) {
 			logger.error("Configuration failed!");
 			logger.error(ex.getLocalizedMessage());

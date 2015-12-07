@@ -2,6 +2,7 @@ package de.heinersyndikat.tools.calendarmail;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -200,6 +201,13 @@ public class RemoteCalendar {
 	 * @param password the password to set
 	 */
 	public void setPassword(String password) {
+		try {
+			// Decrypt if encrypted
+			Encryption encryption = new Encryption();
+			this.password = encryption.check_decrypt(password);
+		} catch (GeneralSecurityException ex) {
+			throw new MailExceptionWrapper(ex);
+		}
 		this.password = password;
 	}
 
