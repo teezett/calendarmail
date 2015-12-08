@@ -1,6 +1,7 @@
 package de.heinersyndikat.tools.calendarmail;
 
 import java.security.GeneralSecurityException;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 import javax.mail.Address;
 import javax.mail.Authenticator;
@@ -130,7 +131,7 @@ public class EmailServer {
 	/**
 	 * @param password the password to set
 	 */
-	public void setPassword(String password) throws MailExceptionWrapper {
+	public void setPassword(String password) throws NoSuchElementException, MailExceptionWrapper {
 		this.session = null;
 		try {
 			Encryption encryption = new Encryption();

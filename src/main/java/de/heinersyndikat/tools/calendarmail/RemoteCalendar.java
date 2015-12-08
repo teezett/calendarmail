@@ -9,6 +9,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import net.fortuna.ical4j.data.CalendarBuilder;
 import net.fortuna.ical4j.data.ParserException;
@@ -200,7 +201,7 @@ public class RemoteCalendar {
 	/**
 	 * @param password the password to set
 	 */
-	public void setPassword(String password) {
+	public void setPassword(String password) throws NoSuchElementException, MailExceptionWrapper {
 		try {
 			// Decrypt if encrypted
 			Encryption encryption = new Encryption();

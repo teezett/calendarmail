@@ -6,6 +6,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
+import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.crypto.BadPaddingException;
@@ -57,7 +58,7 @@ public class Encryption {
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeySpecException 
 	 */
-	protected SecretKey createKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
+	protected SecretKey createKey() throws NoSuchElementException, NoSuchAlgorithmException, InvalidKeySpecException {
 		String password = CalendarMailConfiguration.INSTANCE.getPassword();
 		// Convert password to SecretKey object
 		SecretKeyFactory keyFac = SecretKeyFactory.getInstance("PBEWithMD5AndDES");
@@ -95,7 +96,7 @@ public class Encryption {
 	 * @throws IllegalBlockSizeException
 	 * @throws BadPaddingException 
 	 */
-	public String decrypt(String encoded) throws GeneralSecurityException {
+	public String decrypt(String encoded) throws NoSuchElementException, GeneralSecurityException {
 		// Base64 decoding
 		byte[] encrypted = Base64.getDecoder().decode(encoded);
 		// initialize cipher
@@ -112,7 +113,7 @@ public class Encryption {
 	 * @return decrypted string
 	 * @throws GeneralSecurityException 
 	 */
-	public String check_decrypt(String given) throws GeneralSecurityException {
+	public String check_decrypt(String given) throws NoSuchElementException, GeneralSecurityException {
 		Matcher match = ENCRYPTED.matcher(given);
 		if (match.matches()) {
 			String encrypted = match.group(1);

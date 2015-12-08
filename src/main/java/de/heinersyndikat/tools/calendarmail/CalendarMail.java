@@ -203,8 +203,12 @@ public class CalendarMail {
 			logger.error(internal.getClass().getSimpleName() + ": " + internal.getLocalizedMessage());
 			System.exit(5);
 		} catch (ConfigException ex) {
-			logger.error("Configuration failed!");
-			logger.error(ex.getLocalizedMessage());
+			Throwable internal = ex.getCause();
+			if (internal != null) {
+				logger.error("Configuration failed: " + internal.getLocalizedMessage());
+			} else {
+				logger.error("Configuration failed: " + ex.getLocalizedMessage());
+			}
 			System.exit(2);
 		}
 		// Send reminders
