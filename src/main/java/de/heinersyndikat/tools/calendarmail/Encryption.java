@@ -34,6 +34,7 @@ public class Encryption {
 					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
 	private static final Pattern ENCRYPTED = Pattern.compile("^ENC\\((.+)\\)$");
 	private final static String DEFAULT_SALT = "12345678";
+	private static final String ALGORITHM_NAME = "PBEWithMD5AndDES";
 	private final PBEParameterSpec pbeParamSpec;
 	private final Cipher cipher;
 
@@ -48,7 +49,7 @@ public class Encryption {
 	public Encryption() throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException {
 		pbeParamSpec = new PBEParameterSpec(DEFAULT_SALT.getBytes(), 20);
 		// Create PBE Cipher
-		cipher = Cipher.getInstance("PBEWithMD5AndDES");
+		cipher = Cipher.getInstance(ALGORITHM_NAME);
 	}
 
 	/**

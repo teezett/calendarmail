@@ -20,22 +20,25 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.ParseException;
 
 /**
- * Main class.
+ * Main controller class.
  *
  * @author Sven Bauhan <sde@sven.bauhan.name>
  */
-public class CalendarMail {
+public enum CalendarMail {
 
+	INSTANCE;
+	
 	/**
 	 * Logger instance
 	 */
 	private static transient final Logger logger
 					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
+
 	/**
 	 * Application properties
 	 */
-	static Properties appProperties = new Properties();
 	final static String APP_PROP_RESSOURCE = "/application.properties";
+	Properties appProperties = new Properties();
 
 	private static Optional<String> to_encrypt = Optional.empty();
 	private static Optional<String> to_decrypt = Optional.empty();
@@ -43,7 +46,7 @@ public class CalendarMail {
 	/**
 	 * Load the application properties.
 	 */
-	private static void load_properties() {
+	private void load_properties() {
 		// Get application properties
 		InputStream propertiesStream = CalendarMail.class.getResourceAsStream(APP_PROP_RESSOURCE);
 		logger.debug("Application property Stream: " + propertiesStream);
@@ -63,7 +66,7 @@ public class CalendarMail {
 	 *
 	 * @return the available command line options
 	 */
-	protected static Options defineOptions() {
+	protected Options defineOptions() {
 		Options options = new Options();
 		// -h help
 		Option help = new Option("h", "print this message");
@@ -101,7 +104,7 @@ public class CalendarMail {
 	 *
 	 * @param cmdline commandline with parmeters
 	 */
-	protected static void start(CommandLine cmdline) {
+	protected void start(CommandLine cmdline) {
 		// help
 		if (cmdline.hasOption("h")) {
 			HelpFormatter formatter = new HelpFormatter();
@@ -131,52 +134,11 @@ public class CalendarMail {
 	}
 
 	/**
-	 * Encrypt a given string.
+	 * Initialize application.
 	 * 
-	 * @param unencrypted  string to be encrypted
-	 */
-	public static void encrypt_string(String unencrypted) {
-		try {
-			Encryption encryption = new Encryption();
-			String encrypted = encryption.encrypt(unencrypted);
-			logger.info("Encryption of '" + unencrypted + "' = '" + encrypted + "'");
-			logger.info("Decrypted: " + encryption.decrypt(encrypted));
-			System.exit(0);
-		} catch (NoSuchElementException ex) {
-			logger.error("Unable to encrypt string - no encryption password provided: " + ex.getLocalizedMessage());
-			System.exit(4);
-		} catch (GeneralSecurityException ex) {
-			logger.error("Unable to decrypt string: " + ex.getLocalizedMessage());
-			System.exit(4);
-		}
-	}
-
-	/**
-	 * Decrypt a given string.
-	 * 
-	 * @param encrypted  string to be decrypted
-	 */
-	public static void decrypt_string(String encrypted) {
-		try {
-			Encryption encryption = new Encryption();
-			String decrypted = encryption.decrypt(encrypted);
-			logger.info("Decryption of string '" + encrypted + "' = '" + decrypted + "'");
-			System.exit(0);
-		} catch (NoSuchElementException ex) {
-			logger.error("Unable to decrypt string - no encryption password provided: " + ex.getLocalizedMessage());
-			System.exit(4);
-		} catch (GeneralSecurityException ex) {
-			logger.error("Unable to decrypt string: " + ex.getLocalizedMessage());
-			System.exit(4);
-		}
-	}
-
-	/**
-	 * Main function.
-	 *
 	 * @param args command line options
 	 */
-	public static void main(String[] args) {
+	protected void init(String[] args) {
 		// load application properties
 		load_properties();
 		String version = appProperties.getProperty("application.version", "");
@@ -191,10 +153,47 @@ public class CalendarMail {
 			logger.error("Parse Error: " + ex.getLocalizedMessage());
 			System.exit(1);
 		}
-		// encrypt given string
-		to_encrypt.ifPresent(CalendarMail::encrypt_string);
-		to_decrypt.ifPresent(CalendarMail::decrypt_string);
-		// load configuration
+	}
+	
+	/**
+	 * Encrypt a given string.
+	 * 
+	 * @param unencrypted  string to be encrypted
+	 */
+	protected static void encrypt_string(String unencrypted) {
+		try {
+			Encryption encryption = new Encryption();
+			String encrypted = encryption.encrypt(unencrypted);
+			logger.info("Encryption of '" + unencrypted + "' = 'ENC(" + encrypted + ")'");
+			logger.info("Decrypted: " + encryption.decrypt(encrypted));
+			System.exit(0);
+		} catch (NoSuchElementException | GeneralSecurityException ex) {
+			logger.error("Unable to encrypt string: " + ex.getLocalizedMessage());
+			System.exit(4);
+		}
+	}
+
+	/**
+	 * Decrypt a given string.
+	 * 
+	 * @param encrypted  string to be decrypted
+	 */
+	protected static void decrypt_string(String encrypted) {
+		try {
+			Encryption encryption = new Encryption();
+			String decrypted = encryption.decrypt(encrypted);
+			logger.info("Decryption of string '" + encrypted + "' = '" + decrypted + "'");
+			System.exit(0);
+		} catch (NoSuchElementException | GeneralSecurityException ex) {
+			logger.error("Unable to decrypt string: " + ex.getLocalizedMessage());
+			System.exit(4);
+		}
+	}
+
+	/**
+	 * Load configuration from file.
+	 */
+	protected void loadConfig() {
 		try {
 			CalendarMailConfiguration.INSTANCE.load();
 		} catch (MailExceptionWrapper ex) {
@@ -211,7 +210,12 @@ public class CalendarMail {
 			}
 			System.exit(2);
 		}
-		// Send reminders
+	}
+
+	/**
+	 * Start scheduling of reminders.
+	 */
+	protected void scheduleReminders() {
 		List<Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
 		try {
 			reminders.stream().forEach(Reminder::sendEmail);
@@ -220,6 +224,22 @@ public class CalendarMail {
 			logger.error(internal.getClass().getSimpleName() + ": " + internal.getLocalizedMessage());
 			System.exit(3);
 		}
+	}
+	
+	/**
+	 * Main function.
+	 *
+	 * @param args command line options
+	 */
+	public static void main(String[] args) {
+		INSTANCE.init(args);
+
+		to_encrypt.ifPresent(CalendarMail::encrypt_string);
+		to_decrypt.ifPresent(CalendarMail::decrypt_string);
+
+		INSTANCE.loadConfig();
+
+		INSTANCE.scheduleReminders();
 	}
 
 }
