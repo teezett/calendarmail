@@ -41,6 +41,10 @@ public enum CalendarMailConfiguration {
 	 */
 	private String configurationFile;
 	/**
+	 * flag, if reminders should be executed only once
+	 */
+	private boolean singleExecution = false;
+	/**
 	 * configuration encryption password from commandline option
 	 */
 	private Optional<String> password = Optional.empty();
@@ -144,6 +148,20 @@ public enum CalendarMailConfiguration {
 	 */
 	public void setPassword(String password) {
 		this.password = Optional.of(password);
+	}
+
+	/**
+	 * @return the singleExecution
+	 */
+	public boolean isSingleExecution() {
+		return singleExecution;
+	}
+
+	/**
+	 * @param singleExecution the singleExecution to set
+	 */
+	public void setSingleExecution(boolean singleExecution) {
+		this.singleExecution = singleExecution;
 	}
 
 }

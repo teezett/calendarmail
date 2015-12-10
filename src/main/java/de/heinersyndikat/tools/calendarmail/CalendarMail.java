@@ -4,12 +4,10 @@ import com.typesafe.config.ConfigException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.cli.BasicParser;
@@ -20,13 +18,11 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.ParseException;
-import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
 import org.quartz.Trigger;
-import org.quartz.TriggerBuilder;
 
 /**
  * Main controller class.
@@ -86,6 +82,12 @@ public enum CalendarMail {
 		OptionBuilder.withDescription("configuration file to be read");
 		Option opt = OptionBuilder.create("f");
 		options.addOption(opt);
+		// -s (single execution)
+		OptionBuilder.withArgName("single execution");
+		OptionBuilder.hasArg(false);
+		OptionBuilder.withDescription("perform just one single execution of reminders");
+		opt = OptionBuilder.create("s");
+		options.addOption(opt);
 		// -p encryption password
 		OptionBuilder.withArgName("password");
 		OptionBuilder.hasArg(true);
@@ -125,6 +127,11 @@ public enum CalendarMail {
 			logger.debug("found option -f");
 			String filename = cmdline.getOptionValue("f");
 			CalendarMailConfiguration.INSTANCE.setConfigurationFile(filename);
+		}
+		// perform just one single execution
+		if (cmdline.hasOption("s")) {
+			logger.debug("found option -s");
+			CalendarMailConfiguration.INSTANCE.setSingleExecution(true);
 		}
 		// set encryption password
 		if (cmdline.hasOption("p")) {
@@ -231,25 +238,27 @@ public enum CalendarMail {
 			Scheduler sched = schedFact.getScheduler();
 			Map<String, Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
 			reminders.values().stream().forEach(rem -> {
-				JobDetail job = JobBuilder.newJob(ReminderJob.class)
-								.withIdentity(rem.getName())
-								.usingJobData(ReminderJob.KEY, rem.getName())
-								.build();
-				Trigger trigger = TriggerBuilder.newTrigger()
-								.withIdentity(rem.getName())
-								.startNow()
-								.build();
+				JobDetail job = rem.createJob();
 				try {
+					Trigger trigger = rem.createTrigger();
 					sched.scheduleJob(job, trigger);
+				} catch (java.text.ParseException ex) {
+					logger.warn("Cannot parse cron trigger: " + ex.getLocalizedMessage());
 				} catch (SchedulerException ex) {
 					logger.warn("Scheduling failed: " + ex.getLocalizedMessage());
 				}
 			});
 			sched.start();
-			try {
-				Thread.sleep(1000);
-			} catch(Exception ex) {}
-			sched.shutdown(true);
+			Optional cron_execution = reminders.values().stream()
+							.filter(Reminder::isCron_triggered).findAny();
+			if (!cron_execution.isPresent()) {
+				try {
+					Thread.sleep(1000);
+				} catch (Exception ex) {
+				}
+				logger.info("No Cron triggers found -> exiting");
+				sched.shutdown(true);
+			}
 		} catch (SchedulerException ex) {
 			logger.error("Scheduling failed: " + ex.getLocalizedMessage());
 			System.exit(6);
