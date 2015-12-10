@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.cli.BasicParser;
@@ -18,6 +20,13 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.ParseException;
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.SchedulerFactory;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
 
 /**
  * Main controller class.
@@ -27,7 +36,7 @@ import org.apache.commons.cli.ParseException;
 public enum CalendarMail {
 
 	INSTANCE;
-	
+
 	/**
 	 * Logger instance
 	 */
@@ -135,7 +144,7 @@ public enum CalendarMail {
 
 	/**
 	 * Initialize application.
-	 * 
+	 *
 	 * @param args command line options
 	 */
 	protected void init(String[] args) {
@@ -154,11 +163,11 @@ public enum CalendarMail {
 			System.exit(1);
 		}
 	}
-	
+
 	/**
 	 * Encrypt a given string.
-	 * 
-	 * @param unencrypted  string to be encrypted
+	 *
+	 * @param unencrypted string to be encrypted
 	 */
 	protected static void encrypt_string(String unencrypted) {
 		try {
@@ -175,8 +184,8 @@ public enum CalendarMail {
 
 	/**
 	 * Decrypt a given string.
-	 * 
-	 * @param encrypted  string to be decrypted
+	 *
+	 * @param encrypted string to be decrypted
 	 */
 	protected static void decrypt_string(String encrypted) {
 		try {
@@ -216,16 +225,37 @@ public enum CalendarMail {
 	 * Start scheduling of reminders.
 	 */
 	protected void scheduleReminders() {
-		List<Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
+		// initialize scheduler
+		SchedulerFactory schedFact = new org.quartz.impl.StdSchedulerFactory();
 		try {
-			reminders.stream().forEach(Reminder::sendEmail);
-		} catch (MailExceptionWrapper ex) {
-			Throwable internal = ex.getCause();
-			logger.error(internal.getClass().getSimpleName() + ": " + internal.getLocalizedMessage());
-			System.exit(3);
+			Scheduler sched = schedFact.getScheduler();
+			Map<String, Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
+			reminders.values().stream().forEach(rem -> {
+				JobDetail job = JobBuilder.newJob(ReminderJob.class)
+								.withIdentity(rem.getName())
+								.usingJobData(ReminderJob.KEY, rem.getName())
+								.build();
+				Trigger trigger = TriggerBuilder.newTrigger()
+								.withIdentity(rem.getName())
+								.startNow()
+								.build();
+				try {
+					sched.scheduleJob(job, trigger);
+				} catch (SchedulerException ex) {
+					logger.warn("Scheduling failed: " + ex.getLocalizedMessage());
+				}
+			});
+			sched.start();
+			try {
+				Thread.sleep(1000);
+			} catch(Exception ex) {}
+			sched.shutdown(true);
+		} catch (SchedulerException ex) {
+			logger.error("Scheduling failed: " + ex.getLocalizedMessage());
+			System.exit(6);
 		}
 	}
-	
+
 	/**
 	 * Main function.
 	 *

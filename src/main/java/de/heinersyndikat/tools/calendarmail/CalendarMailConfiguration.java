@@ -7,6 +7,7 @@ import com.typesafe.config.ConfigFactory;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -51,7 +52,7 @@ public enum CalendarMailConfiguration {
 	/**
 	 * Collection of reminders
 	 */
-	private List<Reminder> reminders;
+	private Map<String, Reminder> reminders;
 	/**
 	 * email server
 	 */
@@ -84,8 +85,8 @@ public enum CalendarMailConfiguration {
 			// parse reminder configuration
 			reminders = config.getConfigList(Reminder.CONFIG_KEYWORD).stream()
 							.map(c -> ConfigBeanFactory.create(c, Reminder.class))
-							.collect(Collectors.toList());
-			String reminder_names = getReminders().stream().map(Reminder::getName)
+							.collect(Collectors.toMap(Reminder::getName, rem->rem));
+			String reminder_names = getReminders().keySet().stream()
 							.collect(Collectors.joining(", "));
 			logger.debug("Loaded configuration for the reminders: " + reminder_names);
 			// parse configuration for email server
@@ -116,7 +117,7 @@ public enum CalendarMailConfiguration {
 	/**
 	 * @return the reminders
 	 */
-	public List<Reminder> getReminders() {
+	public Map<String, Reminder> getReminders() {
 		return reminders;
 	}
 
