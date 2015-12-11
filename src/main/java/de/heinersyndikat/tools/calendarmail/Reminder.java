@@ -1,10 +1,13 @@
 package de.heinersyndikat.tools.calendarmail;
 
+import java.text.MessageFormat;
 import java.text.ParseException;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -41,7 +44,7 @@ public class Reminder {
 	public static final String CONFIG_KEYWORD = "reminders";
 
 	private boolean cron_triggered = false;
-	
+
 	private String name;
 	private String cron_trigger;
 	private int days_in_advance;
@@ -111,11 +114,18 @@ public class Reminder {
 			logger.info("No events for reminder [" + getName() + "] - Skip sending");
 			return "";
 		}
+		ResourceBundle message_bundle = CalendarMailConfiguration.INSTANCE.getMessages();
 		logger.debug("Events[" + getName() + "]:\n" + all_events);
+		MessageFormat bodyFormat = new MessageFormat(message_bundle.getString("email.body.intro"));
+		String calendarNames = calendars.stream()
+						.map(RemoteCalendar::getHostname)
+						.collect(Collectors.joining(", "));
+		Object[] params = {getName(), getDays_in_advance(), calendarNames};
+		String intro = bodyFormat.format(params);
 		StringBuilder builder = new StringBuilder();
-		builder.append("Summary for Calender Reminder [").append(getName()).append("]:\n\n");
+		builder.append(intro);
 		builder.append(all_events);
-		builder.append("\nGreetings\n");
+		builder.append(message_bundle.getString("email.body.greeting"));
 		return builder.toString();
 	}
 
@@ -131,9 +141,12 @@ public class Reminder {
 			// configure email content
 			EmailServer emailServer = CalendarMailConfiguration.INSTANCE.getEmailserver();
 			Message message = emailServer.createMessage();
-			LocalDate today = LocalDate.now();
-			message.setSubject("Calendar Reminder [" + getName() + "] at "
-							+ today.format(DATE_FORMAT));
+			// Subject
+			ResourceBundle message_bundle = CalendarMailConfiguration.INSTANCE.getMessages();
+			MessageFormat subjectFormat = new MessageFormat(message_bundle.getString("email.subject"));
+			Object[] params = {getName(), new Date()};
+			String subject = subjectFormat.format(params);
+			message.setSubject(subject);
 			message.setText(createBody());
 			receivers.stream().forEach(rec -> {
 				try {

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,11 @@ public enum CalendarMailConfiguration {
 	 */
 	private static final String CONFIG_KEYWORD = "calendarmail";
 	/**
-	 * configuration
+	 * Internationalization bundle
+	 */
+	private final ResourceBundle messages = ResourceBundle.getBundle("MessageBundle");
+	/**
+	 * typesafe HOCON configuration
 	 */
 	private Config config;
 	/**
@@ -162,6 +167,13 @@ public enum CalendarMailConfiguration {
 	 */
 	public void setSingleExecution(boolean singleExecution) {
 		this.singleExecution = singleExecution;
+	}
+
+	/**
+	 * @return the messages
+	 */
+	public ResourceBundle getMessages() {
+		return messages;
 	}
 
 }
