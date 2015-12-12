@@ -4,6 +4,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigBeanFactory;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
+import java.io.Console;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,9 +140,30 @@ public enum CalendarMailConfiguration {
 	}
 
 	/**
+	 * Prompt input of password.
+	 * @return entered password
+	 */
+	protected String prompt_for_password() {
+		final String PROMPT_TEXT = "No encryption password provided - please enter it now: ";
+		Console console = System.console();
+		if (console == null) {
+			logger.warn("Cannot get console");
+			Scanner in = new Scanner(System.in);
+			System.out.print(PROMPT_TEXT);
+			return in.nextLine();
+		}
+		char[] input = console.readPassword(PROMPT_TEXT);
+		return new String(input);
+	}
+	
+	/**
 	 * @return the password
 	 */
 	public String getPassword() throws NoSuchElementException {
+		if (!password.isPresent()) {
+			logger.warn("No password given - prompt for input");
+			setPassword(prompt_for_password());
+		}
 		try {
 			return password.get();
 		} catch (NoSuchElementException ex) {
