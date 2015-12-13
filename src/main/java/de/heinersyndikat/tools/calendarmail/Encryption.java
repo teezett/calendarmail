@@ -53,6 +53,41 @@ public class Encryption {
 	}
 
 	/**
+	 * Encrypt a given string.
+	 *
+	 * @param unencrypted string to be encrypted
+	 */
+	public static void encrypt_string(String unencrypted) {
+		try {
+			Encryption encryption = new Encryption();
+			String encrypted = encryption.encrypt(unencrypted);
+			logger.info("Encryption of '" + unencrypted + "' = 'ENC(" + encrypted + ")'");
+			logger.info("Decrypted: " + encryption.decrypt(encrypted));
+			System.exit(0);
+		} catch (NoSuchElementException | GeneralSecurityException ex) {
+			logger.error("Unable to encrypt string: " + ex.getLocalizedMessage());
+			System.exit(4);
+		}
+	}
+
+	/**
+	 * Decrypt a given string.
+	 *
+	 * @param encrypted string to be decrypted
+	 */
+	public static void decrypt_string(String encrypted) {
+		try {
+			Encryption encryption = new Encryption();
+			String decrypted = encryption.decrypt(encrypted);
+			logger.info("Decryption of string '" + encrypted + "' = '" + decrypted + "'");
+			System.exit(0);
+		} catch (NoSuchElementException | GeneralSecurityException ex) {
+			logger.error("Unable to decrypt string: " + ex.getLocalizedMessage());
+			System.exit(4);
+		}
+	}
+
+	/**
 	 * Create key from password.
 	 * 
 	 * @return created key
@@ -77,7 +112,7 @@ public class Encryption {
 	 * @throws IllegalBlockSizeException
 	 * @throws BadPaddingException 
 	 */
-	public String encrypt(String string_to_enc) throws GeneralSecurityException {
+	protected String encrypt(String string_to_enc) throws GeneralSecurityException {
 		// initialize cipher
 		cipher.init(Cipher.ENCRYPT_MODE, createKey(), pbeParamSpec);
 		// encrypt string
@@ -97,7 +132,7 @@ public class Encryption {
 	 * @throws IllegalBlockSizeException
 	 * @throws BadPaddingException 
 	 */
-	public String decrypt(String encoded) throws NoSuchElementException, GeneralSecurityException {
+	protected String decrypt(String encoded) throws NoSuchElementException, GeneralSecurityException {
 		// Base64 decoding
 		byte[] encrypted = Base64.getDecoder().decode(encoded);
 		// initialize cipher

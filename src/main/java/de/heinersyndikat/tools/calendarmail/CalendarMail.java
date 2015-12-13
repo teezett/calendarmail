@@ -3,9 +3,6 @@ package de.heinersyndikat.tools.calendarmail;
 import com.typesafe.config.ConfigException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.GeneralSecurityException;
-import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Properties;
 import org.slf4j.Logger;
@@ -18,11 +15,6 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.ParseException;
-import org.quartz.JobDetail;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.SchedulerFactory;
-import org.quartz.Trigger;
 
 /**
  * Main controller class.
@@ -172,41 +164,6 @@ public enum CalendarMail {
 	}
 
 	/**
-	 * Encrypt a given string.
-	 *
-	 * @param unencrypted string to be encrypted
-	 */
-	protected static void encrypt_string(String unencrypted) {
-		try {
-			Encryption encryption = new Encryption();
-			String encrypted = encryption.encrypt(unencrypted);
-			logger.info("Encryption of '" + unencrypted + "' = 'ENC(" + encrypted + ")'");
-			logger.info("Decrypted: " + encryption.decrypt(encrypted));
-			System.exit(0);
-		} catch (NoSuchElementException | GeneralSecurityException ex) {
-			logger.error("Unable to encrypt string: " + ex.getLocalizedMessage());
-			System.exit(4);
-		}
-	}
-
-	/**
-	 * Decrypt a given string.
-	 *
-	 * @param encrypted string to be decrypted
-	 */
-	protected static void decrypt_string(String encrypted) {
-		try {
-			Encryption encryption = new Encryption();
-			String decrypted = encryption.decrypt(encrypted);
-			logger.info("Decryption of string '" + encrypted + "' = '" + decrypted + "'");
-			System.exit(0);
-		} catch (NoSuchElementException | GeneralSecurityException ex) {
-			logger.error("Unable to decrypt string: " + ex.getLocalizedMessage());
-			System.exit(4);
-		}
-	}
-
-	/**
 	 * Load configuration from file.
 	 */
 	protected void loadConfig() {
@@ -229,43 +186,6 @@ public enum CalendarMail {
 	}
 
 	/**
-	 * Start scheduling of reminders.
-	 */
-	protected void scheduleReminders() {
-		// initialize scheduler
-		SchedulerFactory schedFact = new org.quartz.impl.StdSchedulerFactory();
-		try {
-			Scheduler sched = schedFact.getScheduler();
-			Map<String, Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
-			reminders.values().stream().forEach(rem -> {
-				JobDetail job = rem.createJob();
-				try {
-					Trigger trigger = rem.createTrigger();
-					sched.scheduleJob(job, trigger);
-				} catch (java.text.ParseException ex) {
-					logger.warn("Cannot parse cron trigger: " + ex.getLocalizedMessage());
-				} catch (SchedulerException ex) {
-					logger.warn("Scheduling failed: " + ex.getLocalizedMessage());
-				}
-			});
-			sched.start();
-			Optional cron_execution = reminders.values().stream()
-							.filter(Reminder::isCron_triggered).findAny();
-			if (!cron_execution.isPresent()) {
-				try {
-					Thread.sleep(1000);
-				} catch (Exception ex) {
-				}
-				logger.info("No Cron triggers found -> exiting");
-				sched.shutdown(true);
-			}
-		} catch (SchedulerException ex) {
-			logger.error("Scheduling failed: " + ex.getLocalizedMessage());
-			System.exit(6);
-		}
-	}
-
-	/**
 	 * Main function.
 	 *
 	 * @param args command line options
@@ -273,12 +193,12 @@ public enum CalendarMail {
 	public static void main(String[] args) {
 		INSTANCE.init(args);
 
-		to_encrypt.ifPresent(CalendarMail::encrypt_string);
-		to_decrypt.ifPresent(CalendarMail::decrypt_string);
+		to_encrypt.ifPresent(Encryption::encrypt_string);
+		to_decrypt.ifPresent(Encryption::decrypt_string);
 
 		INSTANCE.loadConfig();
 
-		INSTANCE.scheduleReminders();
+		ReminderJob.scheduleReminders();
 	}
 
 }
