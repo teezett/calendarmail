@@ -4,11 +4,15 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigBeanFactory;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
+import java.io.Console;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.ResourceBundle;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,13 +36,21 @@ public enum CalendarMailConfiguration {
 	 */
 	private static final String CONFIG_KEYWORD = "calendarmail";
 	/**
-	 * configuration
+	 * Internationalization bundle
+	 */
+	private final ResourceBundle messages = ResourceBundle.getBundle("MessageBundle");
+	/**
+	 * typesafe HOCON configuration
 	 */
 	private Config config;
 	/**
 	 * configuration filename from commandline option
 	 */
 	private String configurationFile;
+	/**
+	 * flag, if reminders should be executed only once
+	 */
+	private boolean singleExecution = false;
 	/**
 	 * configuration encryption password from commandline option
 	 */
@@ -51,7 +63,7 @@ public enum CalendarMailConfiguration {
 	/**
 	 * Collection of reminders
 	 */
-	private List<Reminder> reminders;
+	private Map<String, Reminder> reminders;
 	/**
 	 * email server
 	 */
@@ -84,8 +96,8 @@ public enum CalendarMailConfiguration {
 			// parse reminder configuration
 			reminders = config.getConfigList(Reminder.CONFIG_KEYWORD).stream()
 							.map(c -> ConfigBeanFactory.create(c, Reminder.class))
-							.collect(Collectors.toList());
-			String reminder_names = getReminders().stream().map(Reminder::getName)
+							.collect(Collectors.toMap(Reminder::getName, rem->rem));
+			String reminder_names = getReminders().keySet().stream()
 							.collect(Collectors.joining(", "));
 			logger.debug("Loaded configuration for the reminders: " + reminder_names);
 			// parse configuration for email server
@@ -116,7 +128,7 @@ public enum CalendarMailConfiguration {
 	/**
 	 * @return the reminders
 	 */
-	public List<Reminder> getReminders() {
+	public Map<String, Reminder> getReminders() {
 		return reminders;
 	}
 
@@ -128,9 +140,30 @@ public enum CalendarMailConfiguration {
 	}
 
 	/**
+	 * Prompt input of password.
+	 * @return entered password
+	 */
+	protected String prompt_for_password() {
+		final String PROMPT_TEXT = "No encryption password provided - please enter it now: ";
+		Console console = System.console();
+		if (console == null) {
+			logger.warn("Cannot get console");
+			Scanner in = new Scanner(System.in);
+			System.out.print(PROMPT_TEXT);
+			return in.nextLine();
+		}
+		char[] input = console.readPassword(PROMPT_TEXT);
+		return new String(input);
+	}
+	
+	/**
 	 * @return the password
 	 */
 	public String getPassword() throws NoSuchElementException {
+		if (!password.isPresent()) {
+			logger.warn("No password given - prompt for input");
+			setPassword(prompt_for_password());
+		}
 		try {
 			return password.get();
 		} catch (NoSuchElementException ex) {
@@ -143,6 +176,27 @@ public enum CalendarMailConfiguration {
 	 */
 	public void setPassword(String password) {
 		this.password = Optional.of(password);
+	}
+
+	/**
+	 * @return the singleExecution
+	 */
+	public boolean isSingleExecution() {
+		return singleExecution;
+	}
+
+	/**
+	 * @param singleExecution the singleExecution to set
+	 */
+	public void setSingleExecution(boolean singleExecution) {
+		this.singleExecution = singleExecution;
+	}
+
+	/**
+	 * @return the messages
+	 */
+	public ResourceBundle getMessages() {
+		return messages;
 	}
 
 }

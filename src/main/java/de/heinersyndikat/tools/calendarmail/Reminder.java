@@ -1,14 +1,17 @@
 package de.heinersyndikat.tools.calendarmail;
 
-import java.time.LocalDate;
+import java.text.MessageFormat;
+import java.text.ParseException;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Transport;
-import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import net.fortuna.ical4j.filter.Filter;
 import net.fortuna.ical4j.filter.PeriodRule;
@@ -16,6 +19,11 @@ import net.fortuna.ical4j.filter.Rule;
 import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.Dur;
 import net.fortuna.ical4j.model.Period;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,10 +43,45 @@ public class Reminder {
 	public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 	public static final String CONFIG_KEYWORD = "reminders";
 
+	private boolean cron_triggered = false;
+
 	private String name;
+	private String cron_trigger;
 	private int days_in_advance;
 	private List<String> receivers;
 //	private List<Address> addresses;
+
+	/**
+	 * Create a new Quartz job.
+	 *
+	 * @return job details
+	 */
+	public JobDetail createJob() {
+		JobDetail job = JobBuilder.newJob(ReminderJob.class)
+						.withIdentity(this.getName())
+						.storeDurably(false)
+						.usingJobData(ReminderJob.KEY, this.getName())
+						.build();
+		return job;
+	}
+
+	/**
+	 * Create trigger as configured.
+	 *
+	 * @return created trigger
+	 * @throws java.text.ParseException
+	 */
+	public Trigger createTrigger() throws ParseException {
+		TriggerBuilder builder = TriggerBuilder.newTrigger()
+						.withIdentity(this.getName());
+		if (CalendarMailConfiguration.INSTANCE.isSingleExecution() || getCron_trigger().isEmpty()) {
+			builder = builder.startNow();
+		} else {
+			builder = builder.withSchedule(CronScheduleBuilder.cronSchedule(getCron_trigger()));
+			cron_triggered = true;
+		}
+		return builder.build();
+	}
 
 	/**
 	 * Get the defined filter for this reminder.
@@ -71,11 +114,18 @@ public class Reminder {
 			logger.info("No events for reminder [" + getName() + "] - Skip sending");
 			return "";
 		}
+		ResourceBundle message_bundle = CalendarMailConfiguration.INSTANCE.getMessages();
 		logger.debug("Events[" + getName() + "]:\n" + all_events);
+		MessageFormat bodyFormat = new MessageFormat(message_bundle.getString("email.body.intro"));
+		String calendarNames = calendars.stream()
+						.map(RemoteCalendar::getHostname)
+						.collect(Collectors.joining(", "));
+		Object[] params = {getName(), getDays_in_advance(), calendarNames};
+		String intro = bodyFormat.format(params);
 		StringBuilder builder = new StringBuilder();
-		builder.append("Summary for Calender Reminder [").append(getName()).append("]:\n\n");
+		builder.append(intro);
 		builder.append(all_events);
-		builder.append("\nGreetings\n");
+		builder.append(message_bundle.getString("email.body.greeting"));
 		return builder.toString();
 	}
 
@@ -91,9 +141,12 @@ public class Reminder {
 			// configure email content
 			EmailServer emailServer = CalendarMailConfiguration.INSTANCE.getEmailserver();
 			Message message = emailServer.createMessage();
-			LocalDate today = LocalDate.now();
-			message.setSubject("Calendar Reminder [" + getName() + "] at "
-							+ today.format(DATE_FORMAT) );
+			// Subject
+			ResourceBundle message_bundle = CalendarMailConfiguration.INSTANCE.getMessages();
+			MessageFormat subjectFormat = new MessageFormat(message_bundle.getString("email.subject"));
+			Object[] params = {getName(), new Date()};
+			String subject = subjectFormat.format(params);
+			message.setSubject(subject);
 			message.setText(createBody());
 			receivers.stream().forEach(rec -> {
 				try {
@@ -160,6 +213,27 @@ public class Reminder {
 //				logger.warn("Invalid receiver address '" + rec + "': " + ex.getLocalizedMessage());
 //			}
 //		});
+	}
+
+	/**
+	 * @return the cron_trigger
+	 */
+	public String getCron_trigger() {
+		return cron_trigger;
+	}
+
+	/**
+	 * @param cron_trigger the cron_trigger to set
+	 */
+	public void setCron_trigger(String cron_trigger) {
+		this.cron_trigger = cron_trigger;
+	}
+
+	/**
+	 * @return the cron_triggered
+	 */
+	public boolean isCron_triggered() {
+		return cron_triggered;
 	}
 
 }

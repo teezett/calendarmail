@@ -3,9 +3,6 @@ package de.heinersyndikat.tools.calendarmail;
 import com.typesafe.config.ConfigException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.GeneralSecurityException;
-import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Properties;
 import org.slf4j.Logger;
@@ -27,7 +24,7 @@ import org.apache.commons.cli.ParseException;
 public enum CalendarMail {
 
 	INSTANCE;
-	
+
 	/**
 	 * Logger instance
 	 */
@@ -77,6 +74,12 @@ public enum CalendarMail {
 		OptionBuilder.withDescription("configuration file to be read");
 		Option opt = OptionBuilder.create("f");
 		options.addOption(opt);
+		// -s (single execution)
+		OptionBuilder.withArgName("single execution");
+		OptionBuilder.hasArg(false);
+		OptionBuilder.withDescription("perform just one single execution of reminders");
+		opt = OptionBuilder.create("s");
+		options.addOption(opt);
 		// -p encryption password
 		OptionBuilder.withArgName("password");
 		OptionBuilder.hasArg(true);
@@ -117,6 +120,11 @@ public enum CalendarMail {
 			String filename = cmdline.getOptionValue("f");
 			CalendarMailConfiguration.INSTANCE.setConfigurationFile(filename);
 		}
+		// perform just one single execution
+		if (cmdline.hasOption("s")) {
+			logger.debug("found option -s");
+			CalendarMailConfiguration.INSTANCE.setSingleExecution(true);
+		}
 		// set encryption password
 		if (cmdline.hasOption("p")) {
 			logger.debug("found option -p");
@@ -135,7 +143,7 @@ public enum CalendarMail {
 
 	/**
 	 * Initialize application.
-	 * 
+	 *
 	 * @param args command line options
 	 */
 	protected void init(String[] args) {
@@ -152,41 +160,6 @@ public enum CalendarMail {
 		} catch (ParseException ex) {
 			logger.error("Parse Error: " + ex.getLocalizedMessage());
 			System.exit(1);
-		}
-	}
-	
-	/**
-	 * Encrypt a given string.
-	 * 
-	 * @param unencrypted  string to be encrypted
-	 */
-	protected static void encrypt_string(String unencrypted) {
-		try {
-			Encryption encryption = new Encryption();
-			String encrypted = encryption.encrypt(unencrypted);
-			logger.info("Encryption of '" + unencrypted + "' = 'ENC(" + encrypted + ")'");
-			logger.info("Decrypted: " + encryption.decrypt(encrypted));
-			System.exit(0);
-		} catch (NoSuchElementException | GeneralSecurityException ex) {
-			logger.error("Unable to encrypt string: " + ex.getLocalizedMessage());
-			System.exit(4);
-		}
-	}
-
-	/**
-	 * Decrypt a given string.
-	 * 
-	 * @param encrypted  string to be decrypted
-	 */
-	protected static void decrypt_string(String encrypted) {
-		try {
-			Encryption encryption = new Encryption();
-			String decrypted = encryption.decrypt(encrypted);
-			logger.info("Decryption of string '" + encrypted + "' = '" + decrypted + "'");
-			System.exit(0);
-		} catch (NoSuchElementException | GeneralSecurityException ex) {
-			logger.error("Unable to decrypt string: " + ex.getLocalizedMessage());
-			System.exit(4);
 		}
 	}
 
@@ -213,20 +186,6 @@ public enum CalendarMail {
 	}
 
 	/**
-	 * Start scheduling of reminders.
-	 */
-	protected void scheduleReminders() {
-		List<Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
-		try {
-			reminders.stream().forEach(Reminder::sendEmail);
-		} catch (MailExceptionWrapper ex) {
-			Throwable internal = ex.getCause();
-			logger.error(internal.getClass().getSimpleName() + ": " + internal.getLocalizedMessage());
-			System.exit(3);
-		}
-	}
-	
-	/**
 	 * Main function.
 	 *
 	 * @param args command line options
@@ -234,12 +193,12 @@ public enum CalendarMail {
 	public static void main(String[] args) {
 		INSTANCE.init(args);
 
-		to_encrypt.ifPresent(CalendarMail::encrypt_string);
-		to_decrypt.ifPresent(CalendarMail::decrypt_string);
+		to_encrypt.ifPresent(Encryption::encrypt_string);
+		to_decrypt.ifPresent(Encryption::decrypt_string);
 
 		INSTANCE.loadConfig();
 
-		INSTANCE.scheduleReminders();
+		ReminderJob.scheduleReminders();
 	}
 
 }
