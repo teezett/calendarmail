@@ -1,0 +1,83 @@
+= Requirements for CalendarMail
+
+== Use Case Overview
+
+.Use case overview
+[plantuml, use_cases, svg]
+--
+left to right direction
+actor user
+actor cron
+rectangle CalendarMail {
+ (single execution) as (single)
+ (start cron) as (start)
+ (read configuration) as (config)
+ (scheduling)
+ (send reminder) as (remind)
+ (fetch remote calendar) as (fetch)
+ (filter calendar events) as (filter)
+ (send reminder email) as (email)
+
+ user --> (encrypt)
+ user --> (decrypt)
+ user --> (start)
+ cron --> (single)
+ (start) ..> (scheduling) : <<include>>
+ (single) ..> (scheduling) : <<include>>
+ actor scheduler
+ scheduler -up-> (scheduling)
+ (config) ..> (scheduling) : <<extends>>
+ (remind) .left.> (scheduling) : <<extends>>
+ (remind) ..> (filter) : <<include>>
+ (filter) .up.> (fetch) : <<include>>
+ (remind) ..> (email) : <<include>>
+}
+--
+
+== Detailed use cases
+
+=== Encrypt/decrypt
+
+.encryption
+[plantuml, encryption-case, svg]
+--
+start
+:user executes program with string to be encrypted;
+if (password given?) then (no)
+    :promt for input of password;
+endif
+:encrypt string with given password;
+:print encrypted string;
+stop
+--
+
+=== Read configuration
+
+.read configuration file
+[plantuml, configuration-case, svg]
+--
+start
+if (external configuration file given?) then (yes)
+    :read file with given name;
+else (no)
+    :read default configuration;
+endif
+:parse configuration;
+if (fatal error?) then (yes)
+    :print error message;
+    :exit;
+    stop
+elseif (acceptable error?) then (yes)
+    :print warning message;
+else (no error)
+endif
+if (configuration contains encrypted passwords?) then (yes)
+    if (encryption password provided at command line?) then (yes)
+    else (no)
+        :prompt for input of encryption password;
+    endif
+    :decrypt configuration passwords;
+endif
+:continue operation;
+stop
+--
