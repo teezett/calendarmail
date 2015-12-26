@@ -1,0 +1,56 @@
+= CalendarMail User Manual
+:name: Sven Bauhan
+:email: sde@sven.bauhan.name
+:doctype: book
+:encoding: utf-8
+:revnumber: 0.1
+:lang: en
+:toc: left
+:numbered:
+
+
+== Overview
+
+The `calendarmail` application is intended to run on a server.
+Nevertheless it is developed as JavaSE application, so it can be run on every machine.
+
+It has some command line parameters to configure its behaviour.
+These can be grouped in commands to be executed immidiately or let the program run continiously.
+
+An overview of the command line parameters is given when using the `-h` option:
+[source,shell]
+--
+> java -jar calendarmail-0.1-standalone.jar -h
+CalendarMail [0.1]: Sending reminder for calendar entries via email
+usage: CalendarMail
+ -e <string>     string to encrypt
+ -f <file>       configuration file to be read
+ -h              print this message
+ -p <password>   encryption password
+ -s              perform just one single execution of reminders
+ -u <string>     string to unencrypt
+--
+
+== Encryption
+
+The command line options `-e` and `-u` are just executed and return immidiately.
+They are used to encrypt and decrypt passwords for the configuration file using a master password.
+The master password should be provided via command line option `-p`, else it will be prompted.
+
+In the configuration file encrypted password have to be surrounded by `ENC(...)`.
+The encryption option `-e` provides the resulting encryption in this format.
+But the unencrypt option `-u` expects a sole encrypted string.
+
+== Configuration
+
+The software is conntrolled by a configuration file.
+This configuration uses the https://github.com/typesafehub/config/blob/master/HOCON.md[**HOCON** (Human-Optimized Config Object Notation) format].
+
+The configuration file can be given via command line parameter `-f`.
+If none is selected, the default configuration in the resource file `reference.conf` is used.
+
+[source,json,tabsize=2]
+.Example configuration file
+----
+include::../../main/resources/reference.conf[]
+----

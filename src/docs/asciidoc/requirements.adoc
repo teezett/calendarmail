@@ -1,9 +1,25 @@
 = Requirements for CalendarMail
+Sven Bauhan <sde@sven.bauhan.name>
+:doctype: book
+:encoding: utf-8
+:lang: en
+:toc: left
+:numbered:
+
+== Goals
+
+The intention of this project is to solve the following goals:
+
+* Fetch calendar information from different CalDAV locations
+* Filter events for a given period
+* Regularly send email reminders containing a summary of the following events
 
 == Use Case Overview
 
+For the software the following use cases have been identified:
+
 .Use case overview
-[plantuml, use_cases, svg]
+[plantuml, use_cases, png]
 --
 left to right direction
 actor user

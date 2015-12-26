@@ -1,4 +1,10 @@
 = Design of CalendarMail
+Sven Bauhan <sde@sven.bauhan.name>
+:doctype: book
+:encoding: utf-8
+:lang: en
+:toc: left
+:numbered:
 
 == Class structure
 
