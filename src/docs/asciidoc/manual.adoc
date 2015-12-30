@@ -54,3 +54,56 @@ If none is selected, the default configuration in the resource file `reference.c
 ----
 include::../../main/resources/reference.conf[]
 ----
+
+=== Configuration file syntax
+
+The configuration of the application is placed in the object `calendarmail` of the configuration file.
+This object consists of three parts as described below.
+Each defined attribute, has to be set, also if it is optional; Then it has to be set by an empty string.
+
+==== Calendars configuration
+
+The attribute `calendars` holds a list of available calendars.
+
+Each calendar consists of the mandatory attributes `hostname` (used for identification) and `address` (location of the iCal data).
+Actually only a single iCal file as calendar data is supported; In future a collection of many calendar files in a given directory shall be supported too.
+
+If an authorization is required to access the calendar data, the optional attributes `username` and `password` can be used.
+
+==== Email server configuration
+
+The configuration of the email server to send the email reminders to the receipients is done in the attribute `emailserver`.
+It contains the values for `hostname` (smtp server), `smtp_port` (integer value), `username`, `password` (encryption possible), `ssl_connect` (boolean) and `from` (originator email address).
+
+==== Reminder configuration
+
+Several reminders can be configured in the attribute `reminders` in a list of objects.
+
+These reminders have several attributes.
+The first is the `name` to identify them.
+
+With the optional attribute `cron_trigger` a regularly repeating of the reminder can be triggered.
+The syntax of this trigger is similar to those of https://en.wikipedia.org/wiki/Cron[Unix cronjobs].
+To build such cron expression you could use tools like http://www.cronmaker.com/[Cron Maker].
+If this attribute is empty, the reminder is only triggered once at program start.
+
+The attribute `days_in_advance` (integer value) defines the duration of the time period to be considered for events in the calendars.
+This means, events of the current day until the given number of days in advance when the reminder is triggered will be contained in the reminder notification.
+
+The `receivers` attribute contains a list of email addresses of the receivers of this remimder.
+For sake of data security these receivers are put in https://en.wikipedia.org/wiki/Blind_carbon_copy[Bcc field] of the https://en.wikipedia.org/wiki/Email#Message_header[email header].
+
+== Usage
+
+Generally there are two ways to use this application.
+
+If you just want to send a reminder message once to a list of receivers, you can just call the program on the commandline with a matching configuration file.
+If all configured reminders do not define a cron trigger, they will just be triggered once and the program exits afterwards.
+
+If any reminder has a defined cron trigger, the program would run infinitely until it is stopped manually.
+It sleeps until the scheduler triggers the activation of a reminder according to its cron trigger configuration.
+So this opration mode is intended to be used on a server.
+The operation of the application can be monitored externally via JMX.
+
+If you want to use a configuration with defined cron triggers to be executed once, you can set the commandline option `-s`.
+Then each reminder is triggered once at program start and the program is exited afterwards, just as if no cron trigger would be defined.

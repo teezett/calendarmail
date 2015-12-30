@@ -6,6 +6,7 @@ Sven Bauhan <sde@sven.bauhan.name>
 :toc: left
 :numbered:
 
+
 == Goals
 
 The intention of this project is to solve the following goals:
@@ -13,6 +14,24 @@ The intention of this project is to solve the following goals:
 * Fetch calendar information from different CalDAV locations
 * Filter events for a given period
 * Regularly send email reminders containing a summary of the following events
+
+
+== Domain Model
+
+[glossary]
+Remote Calendar::
+A calendar in iCal format on a server, available via CalDAV protocol.
+Reminder::
+A scheduled job to be triggered regularly to filter calendar events and to send a email summary.
+Email Server::
+Email Server configuration to be used to send reminder emails.
+User::
+A person to invoke the program from a commandline.
+Cron job::
+A Unix cron job to execute a program in a repeated manner.
+Scheduler::
+A program part that triggers jobs to be executed at a time when it is configured.
+
 
 == Use Case Overview
 
@@ -23,7 +42,7 @@ For the software the following use cases have been identified:
 --
 left to right direction
 actor user
-actor cron
+actor "cron job" as cron
 rectangle CalendarMail {
  (single execution) as (single)
  (start cron) as (start)
@@ -50,12 +69,28 @@ rectangle CalendarMail {
 }
 --
 
+
 == Detailed use cases
+
+The identified use cases will be described below.
+The https://www.sophist.de/fileadmin/SOPHIST/UML/uml2-4_linknummern/12-1_Schablone_fuer_%20Use-Case-Beschreibung.pdf[use case template of the SOPHIST group] will be used here.
 
 === Encrypt/decrypt
 
-.encryption
-[plantuml, encryption-case, svg]
+Goal::
+Encrypt / Decrypt a password for usage in configuration
+
+Actors::
+user
+
+Trigger::
+The user provides a password to be encrypted/decrypted on the commandline.
+
+Steps::
+in diagram:
++
+.Encryption/Decryption of a password
+[plantuml, encryption-case, png]
 --
 start
 :user executes program with string to be encrypted;
@@ -69,8 +104,20 @@ stop
 
 === Read configuration
 
-.read configuration file
-[plantuml, configuration-case, svg]
+Goal::
+A configuration file has to be interpreted.
+
+Actors::
+system
+
+Trigger::
+At system start a configuration file is provided to be used.
+
+Steps::
+in diagram:
++
+.Reading configuration file
+[plantuml, configuration-case, png]
 --
 start
 if (external configuration file given?) then (yes)

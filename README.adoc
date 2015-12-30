@@ -62,7 +62,8 @@ Software-Requirements for project CalendarMail
 link:src/docs/asciidoc/design.adoc[Design of CalendarMail]::
 Software Design description of CalendarMail
 
-
+The links to these sources are not generated at this location and may not contain the diagrams.
+To see it completely, perform a build and read the documentation in the `target/generated-docs/` directory.
 
 == Contributing
 

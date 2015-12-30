@@ -1,15 +1,18 @@
 = Design of CalendarMail
-Sven Bauhan <sde@sven.bauhan.name>
+:name: Sven Bauhan
+:email: sde@sven.bauhan.name
 :doctype: book
 :encoding: utf-8
+:revnumber: 0.1
 :lang: en
 :toc: left
 :numbered:
 
+
 == Class structure
 
 .working classes
-[plantuml, classes, svg]
+[plantuml, classes, png]
 --
 class CalendarMail {
  -{static} Optional<String> to_encrypt
