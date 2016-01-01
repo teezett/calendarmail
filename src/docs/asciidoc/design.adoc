@@ -1,0 +1,89 @@
+= Design of CalendarMail
+:name: Sven Bauhan
+:email: sde@sven.bauhan.name
+:doctype: book
+:encoding: utf-8
+:revnumber: 0.1
+:lang: en
+:toc: left
+:numbered:
+
+
+== Class structure
+
+.working classes
+[plantuml, classes, png]
+--
+class CalendarMail {
+ -{static} Optional<String> to_encrypt
+ -{static} Optional<String> to_decrypt
+ -load_properties()
+ #Options defineOptions()
+ #start(CommandLine)
+ #init(String[])
+ #loadConfig()
+ +{static} main(String[])
+}
+class Encryption {
+ #SecretKey createKey()
+ #String encrypt()
+ #String decrypt()
+ +{static} encrypt_string(String)
+ +{static} decrypt_string(String)
+ +String check_decrypt()
+}
+class RemoteCalendar {
+ -String hostname
+ -String address
+ -String username
+ -String password
+ +{static} String filterAll(List<RemoteCalendar>, Filter)
+ +String toString(Filter)
+}
+enum CalendarMailConfiguration << (S,#FF7700) Singleton >> {
+ +load()
+ ..accessors..
+ +ResourceBundle getMessages()
+ ..configuration parameters..
+ +setConfigurationFile(String)
+ +String getPassword()
+ +boolean isSingleExecution()
+ ..containers..
+ +EmailServer getEmailserver()
+ +Map<String, Reminder> getReminders()
+ +List<RemoteCalendar> getCalendars()
+}
+class ReminderJob {
+ +{static} scheduleReminders()
+ +execute()
+}
+class Reminder {
+ -String name
+ -String cron_trigger
+ -int days_in_advance
+ -List<String> receivers
+ +createJob()
+ +createTrigger()
+ +sendEmail()
+}
+class EmailServer {
+ -String hostname
+ -int smtp_port
+ -String username
+ -String password
+ -boolean ssl_connect
+ -String from
+ +Message createMessage()
+}
+
+Encryption .down.> CalendarMailConfiguration : use
+CalendarMailConfiguration *-- "*" Reminder
+RemoteCalendar "*" -* CalendarMailConfiguration
+CalendarMailConfiguration *- EmailServer
+ReminderJob .right.> Reminder : use
+Reminder ..> RemoteCalendar : use
+Reminder ..> EmailServer : use
+Encryption <.. RemoteCalendar : use
+Encryption <.. EmailServer : use
+
+--
