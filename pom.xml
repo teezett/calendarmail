@@ -256,7 +256,7 @@
 								<toc>left</toc>
 								<icons>font</icons>
 								<sectanchors>true</sectanchors>
-								<idprefix/>
+								<idprefix />
 								<idseparator>-</idseparator>
 							</attributes>
 						</configuration>
@@ -290,7 +290,7 @@
 					<fileSets>
 						<fileSet>
 							<directory>${basedir}/src/main/resources</directory>
-							<outputDirectory></outputDirectory>
+							<outputDirectory />
 						</fileSet>
 					</fileSets>
 					<descriptors>
