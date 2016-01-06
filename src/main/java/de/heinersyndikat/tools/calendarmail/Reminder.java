@@ -86,7 +86,7 @@ public class Reminder {
 	/**
 	 * Get the defined filter for this reminder.
 	 *
-	 * @return
+	 * @return  created filter
 	 */
 	protected Filter getFilter() {
 		// get actual timestamp (beginning of day)
