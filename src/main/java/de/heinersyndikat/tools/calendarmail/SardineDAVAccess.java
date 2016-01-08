@@ -34,9 +34,9 @@ public class SardineDAVAccess {
 	public SardineDAVAccess(String hostname_, String username_, String password_) {
 		hostname = hostname_;
 		if ((username_ != null) && (password_ != null)) {
-			connection = SardineFactory.begin(username_, password_);
+			connection = new SardineTrustAlways(username_, password_);
 		} else {
-			connection = SardineFactory.begin();
+			connection = new SardineTrustAlways();
 		}
 	}
 
