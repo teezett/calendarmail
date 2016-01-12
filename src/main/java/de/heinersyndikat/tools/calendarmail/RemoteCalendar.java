@@ -60,6 +60,7 @@ public class RemoteCalendar {
 			throw new IOException("No address given for calendar '" + getHostname() + "'");
 		}
 		SardineDAVAccess website = new SardineDAVAccess(getHostname(), getUsername(), getPassword());
+		website.list(getAddress());
 		InputStream is = website.read(getAddress());
 		if (is == null) {
 			throw new IOException("No data available for calendar '" + getHostname() + "'");

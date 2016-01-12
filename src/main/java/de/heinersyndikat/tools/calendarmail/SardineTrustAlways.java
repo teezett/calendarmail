@@ -14,7 +14,7 @@ import org.apache.http.conn.ssl.SSLSocketFactory;
 
 /**
  * Sardine implemtation to trust all SSL keys.
- * 
+ *
  * @author Sven Bauhan <sde@sven.bauhan.name>
  */
 public class SardineTrustAlways extends SardineImpl {
@@ -61,15 +61,5 @@ public class SardineTrustAlways extends SardineImpl {
 		}
 		return sslSf;
 	}
-
-//	@Override
-//	protected SchemeRegistry createDefaultSchemeRegistry() {
-//		SchemeRegistry schemeRegistry = new SchemeRegistry();
-//		schemeRegistry.register(new Scheme("http", 8080,
-//						PlainSocketFactory.getSocketFactory()));
-//		schemeRegistry.register(new Scheme("https", 443,
-//						createDefaultSecureSocketFactory()));
-//		return schemeRegistry;
-//	}
 
 }
