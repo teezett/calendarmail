@@ -108,12 +108,14 @@ public class Reminder {
 	 * @return string containing message body
 	 */
 	protected String createBody() {
+		// Create textual representation for all calendar events
 		List<RemoteCalendar> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
 		String all_events = RemoteCalendar.filterAll(calendars, getFilter());
 		if (all_events.isEmpty()) {
 			logger.info("No events for reminder [" + getName() + "] - Skip sending");
 			return "";
 		}
+		// Create the email body entry text
 		ResourceBundle message_bundle = CalendarMailConfiguration.INSTANCE.getMessages();
 		logger.debug("Events[" + getName() + "]:\n" + all_events);
 		MessageFormat bodyFormat = new MessageFormat(message_bundle.getString("email.body.intro"));
@@ -122,10 +124,17 @@ public class Reminder {
 						.collect(Collectors.joining(", "));
 		Object[] params = {getName(), getDays_in_advance(), calendarNames};
 		String intro = bodyFormat.format(params);
+		// Create the email signature text
+		MessageFormat sigFormat = new MessageFormat(message_bundle.getString("email.body.signature"));
+		Object[] sig_params = {"CalendarMail", "https://github.com/teezett/calendarmail",
+		"http://www.heinersyndikat.de/"};
+		String signature = sigFormat.format(sig_params);
+		// combine the message body parts
 		StringBuilder builder = new StringBuilder();
 		builder.append(intro);
 		builder.append(all_events);
 		builder.append(message_bundle.getString("email.body.greeting"));
+		builder.append(signature);
 		return builder.toString();
 	}
 
@@ -147,7 +156,7 @@ public class Reminder {
 			Object[] params = {getName(), new Date()};
 			String subject = subjectFormat.format(params);
 			message.setSubject(subject);
-			message.setText(createBody());
+			message.setText(body);
 			receivers.stream().forEach(rec -> {
 				try {
 					Address addr = new InternetAddress(rec, true);

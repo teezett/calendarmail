@@ -1,12 +1,18 @@
 package de.heinersyndikat.tools.calendarmail;
 
+import com.github.sardine.DavResource;
+import com.github.sardine.Sardine;
+import static de.heinersyndikat.tools.calendarmail.SardineDAVAccess.resource2uri;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -45,7 +51,6 @@ public class RemoteCalendar {
 	private String username;
 	private String password;
 
-	private Calendar iCal;
 	private Collection events;
 
 	/**
@@ -59,17 +64,37 @@ public class RemoteCalendar {
 		if (getAddress().equals("")) {
 			throw new IOException("No address given for calendar '" + getHostname() + "'");
 		}
-		SardineDAVAccess website = new SardineDAVAccess(getHostname(), getUsername(), getPassword());
-		website.list(getAddress());
-		InputStream is = website.read(getAddress());
-		if (is == null) {
-			throw new IOException("No data available for calendar '" + getHostname() + "'");
-		} else {
-			CalendarBuilder builder = new CalendarBuilder();
-			iCal = builder.build(is);
-			events = iCal.getComponents(Component.VEVENT);
+		Sardine webdav = new SardineTrustAlways(getUsername(), getPassword());
+		try {
+			URI base = new URI(getAddress());
+			logger.info("Investigating URL " + base);
+			List<DavResource> resources = webdav.list(getAddress());
+			List<URI> calendars = resources.stream()
+							.filter(r -> r.getContentType().contains("calendar"))
+							.map(r -> resource2uri(base, r))
+							.collect(Collectors.toList());
+			events = new ArrayList();
+			for (URI calendar : calendars) {
+				logger.info("Found calendar " + calendar);
+				try {
+					InputStream is = webdav.get(calendar.toString());
+					CalendarBuilder builder = new CalendarBuilder();
+					Calendar iCal = builder.build(is);
+					events.addAll(iCal.getComponents(Component.VEVENT));
+				} catch (IOException ex) {
+					logger.warn("Error reading address " + calendar + ": " + ex.getLocalizedMessage());
+				} catch (ParserException ex) {
+					logger.warn("Error parsing calendar " + calendar + ": " + ex.getLocalizedMessage());
+				}
+			}
+			logger.info("Found " + events.size() + " Events in " + calendars.size() + " Calendar files.");
+		} catch (IOException | URISyntaxException ex) {
+			logger.error(ex.getLocalizedMessage());
 		}
-		return events;
+		return (Collection) events.stream()
+						.map(ev -> (VEvent) ev)
+						.sorted(new EventComparator())
+						.collect(Collectors.toList());
 	}
 
 	/**
