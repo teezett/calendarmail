@@ -51,32 +51,33 @@ public class RemoteCalendar {
 	private String username;
 	private String password;
 
-	private Collection events;
-
 	/**
 	 * Read the CalDAV calendar from given ressource address.
 	 *
 	 * @return collection of events in this calencar
 	 * @throws java.io.IOException
-	 * @throws net.fortuna.ical4j.data.ParserException
 	 */
-	public Collection getEvents() throws IOException, ParserException {
+	public Collection getEvents() throws IOException {
 		if (getAddress().equals("")) {
 			throw new IOException("No address given for calendar '" + getHostname() + "'");
 		}
 		Sardine webdav = new SardineTrustAlways(getUsername(), getPassword());
+		// handle CalDAV directory of iCal files
 		try {
+			// get list of resources at given address
 			URI base = new URI(getAddress());
-			logger.info("Investigating URL " + base);
+			logger.debug("Investigating URL " + base);
 			List<DavResource> resources = webdav.list(getAddress());
+			// reformat resources to get correct URI
 			List<URI> calendars = resources.stream()
 							.filter(r -> r.getContentType().contains("calendar"))
 							.map(r -> resource2uri(base, r))
 							.collect(Collectors.toList());
-			events = new ArrayList();
-			for (URI calendar : calendars) {
-				logger.info("Found calendar " + calendar);
+			// read the events from all calendars
+			Collection events = new ArrayList();
+			calendars.stream().forEach((calendar) -> {
 				try {
+					logger.debug("Found calendar " + calendar);
 					InputStream is = webdav.get(calendar.toString());
 					CalendarBuilder builder = new CalendarBuilder();
 					Calendar iCal = builder.build(is);
@@ -86,33 +87,41 @@ public class RemoteCalendar {
 				} catch (ParserException ex) {
 					logger.warn("Error parsing calendar " + calendar + ": " + ex.getLocalizedMessage());
 				}
-			}
-			logger.info("Found " + events.size() + " Events in " + calendars.size() + " Calendar files.");
+			});
+			logger.info("Found " + events.size() + " Events in " + calendars.size()
+							+ " Calendar files in calendar " + getHostname());
+			return events;
 		} catch (IOException | URISyntaxException ex) {
-			logger.error(ex.getLocalizedMessage());
+			logger.debug(ex.getLocalizedMessage());
 		}
-		return (Collection) events.stream()
-						.map(ev -> (VEvent) ev)
-						.sorted(new EventComparator())
-						.collect(Collectors.toList());
+		// handle single iCal file
+		InputStream in_stream = webdav.get(getAddress());
+		if (in_stream != null) {
+			Collection events = new ArrayList();
+			try {
+				CalendarBuilder builder = new CalendarBuilder();
+				Calendar iCal = builder.build(in_stream);
+				events = iCal.getComponents(Component.VEVENT);
+			} catch (ParserException ex) {
+				logger.warn("Unable to parse calendar file at " + getAddress());
+				logger.warn(ex.getLocalizedMessage());
+			}
+			logger.info("Found iCal file with " + events.size()
+							+ " entries for calendar " + getHostname());
+			return events;
+		}
+		logger.warn("Could not get valid calendar information for calendar " + getHostname());
+		return new ArrayList();
 	}
 
 	/**
-	 * Create a string representation of the calendar.
+	 * Convert a list of calendar events into textual representation.
 	 * 
-	 * @param filter_  filter for events
-	 * @return  string representation for the calendar events
-	 * @throws IOException
-	 * @throws ParserException 
+	 * @param events_ list of calendar events
+	 * @return textual representation
 	 */
-	public String toString(Filter filter_) throws IOException, ParserException {
-		Collection filtered_events;
-		if (filter_ != null) {
-			filtered_events = filter_.filter(getEvents());
-		} else {
-			filtered_events = getEvents();
-		}
-		return filtered_events.stream()
+	public static String eventlist_to_string(Collection events_) {
+		return events_.stream()
 						.map(ev -> event_to_string((VEvent) ev))
 						.collect(Collectors.joining("\n"))
 						.toString();
@@ -120,11 +129,11 @@ public class RemoteCalendar {
 
 	/**
 	 * Convert an event to a string representation.
-	 * 
-	 * @param event  the given event
-	 * @return  string representation of event
+	 *
+	 * @param event the given event
+	 * @return string representation of event
 	 */
-	protected String event_to_string(VEvent event) {
+	public static String event_to_string(VEvent event) {
 		StringBuilder builder = new StringBuilder();
 		// Event time
 		DtStart start = event.getStartDate();
@@ -153,28 +162,36 @@ public class RemoteCalendar {
 	}
 
 	/**
-	 * Static method to filter all given calendars for events and generate
-	 * a string representation.
-	 * 
-	 * @param calendars  calendars to be combined and filtered
-	 * @param filter  filter for events
-	 * @return  string representation
+	 * Static method to filter all given calendars for events and generate a
+	 * string representation.
+	 *
+	 * @param calendars calendars to be combined and filtered
+	 * @param filter_ filter for events
+	 * @return a collection of all filtered events
 	 */
-	public static String filterAll(List<RemoteCalendar> calendars, Filter filter) {
-		String all_events = calendars.stream()
-						.map(cal -> {
+	public static Collection filterAll(List<RemoteCalendar> calendars, Filter filter_) {
+		// collect events of all calendars and sort them chronologically
+		Collection events = (Collection) calendars.stream()
+						.map(c -> {
 							try {
-								return cal.toString(filter);
-							} catch (IOException | ParserException ex) {
-								logger.warn(ex.getLocalizedMessage());
+								return c.getEvents();
+							} catch (IOException ex) {
+								return new ArrayList<VEvent>();
 							}
-							return "";
 						})
-						.filter(txt -> !txt.isEmpty())
-						.collect(Collectors.joining("\n"));
-		return all_events;
+						.flatMap(l -> l.stream())
+						.sorted(new EventComparator())
+						.collect(Collectors.toList());
+		// filter the events using the given filter
+		Collection filtered_events;
+		if (filter_ != null) {
+			filtered_events = filter_.filter(events);
+		} else {
+			filtered_events = events;
+		}
+		return filtered_events;
 	}
-	
+
 	/**
 	 * @return the hostname
 	 */

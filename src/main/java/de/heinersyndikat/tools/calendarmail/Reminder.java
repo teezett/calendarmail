@@ -4,6 +4,7 @@ import java.text.MessageFormat;
 import java.text.ParseException;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -86,7 +87,7 @@ public class Reminder {
 	/**
 	 * Get the defined filter for this reminder.
 	 *
-	 * @return  created filter
+	 * @return created filter
 	 */
 	protected Filter getFilter() {
 		// get actual timestamp (beginning of day)
@@ -109,12 +110,17 @@ public class Reminder {
 	 */
 	protected String createBody() {
 		// Create textual representation for all calendar events
+		logger.info("Fetching calendar information for reminder [" + getName()
+						+ "] ...");
 		List<RemoteCalendar> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
-		String all_events = RemoteCalendar.filterAll(calendars, getFilter());
-		if (all_events.isEmpty()) {
+		Collection events = RemoteCalendar.filterAll(calendars, getFilter());
+		if (events.isEmpty()) {
 			logger.info("No events for reminder [" + getName() + "] - Skip sending");
 			return "";
 		}
+		logger.info("Found " + events.size() + " relevant entries for reminder ["
+						+ getName() + "]");
+		String all_events = RemoteCalendar.eventlist_to_string(events);
 		// Create the email body entry text
 		ResourceBundle message_bundle = CalendarMailConfiguration.INSTANCE.getMessages();
 		logger.debug("Events[" + getName() + "]:\n" + all_events);
@@ -127,7 +133,7 @@ public class Reminder {
 		// Create the email signature text
 		MessageFormat sigFormat = new MessageFormat(message_bundle.getString("email.body.signature"));
 		Object[] sig_params = {"CalendarMail", "https://github.com/teezett/calendarmail",
-		"http://www.heinersyndikat.de/"};
+			"http://www.heinersyndikat.de/"};
 		String signature = sigFormat.format(sig_params);
 		// combine the message body parts
 		StringBuilder builder = new StringBuilder();
