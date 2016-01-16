@@ -165,6 +165,7 @@
 				<artifactId>jgitflow-maven-plugin</artifactId>
 				<version>1.0-m5.1</version>
 				<configuration>
+					<noHotfixBuild>true</noHotfixBuild>
 					<useReleaseProfile>false</useReleaseProfile>
 					<!--<skipTestProject>true</skipTestProject>-->
 					<noDeploy>true</noDeploy>
