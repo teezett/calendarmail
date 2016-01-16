@@ -45,9 +45,21 @@ Asciidoctor Maven plugin relies on https://github.com/asciidoctor/asciidoctor[as
 
 === Build
 
-Invoke the `install` goal (configured as the default goal) on this folder (`calendarmail`):
+There are different goals defined to build different parts of the application package.
 
- $ mvn
+The default is to build just the java classes for development; it is done in the `build` profile:
+
+ $> mvn [-Pbuild]
+
+The documentation (asciidoc) is generated in the `doc` profile:
+
+ $> mvn -Pdoc
+
+The `.jar` files are generated in the `assembly` profile.
+But this is also done when everything is generated.
+This will be done when the property `release` is defined:
+
+ $> mvn -Drelease
 
 == Documentation
 

@@ -1,12 +1,18 @@
 package de.heinersyndikat.tools.calendarmail;
 
+import com.github.sardine.DavResource;
+import com.github.sardine.Sardine;
+import static de.heinersyndikat.tools.calendarmail.SardineDAVAccess.resource2uri;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -45,48 +51,84 @@ public class RemoteCalendar {
 	private String username;
 	private String password;
 
-	private Calendar iCal;
-	private Collection events;
-
 	/**
 	 * Read the CalDAV calendar from given ressource address.
 	 *
 	 * @return collection of events in this calencar
 	 * @throws java.io.IOException
-	 * @throws net.fortuna.ical4j.data.ParserException
 	 */
-	public Collection getEvents() throws IOException, ParserException {
+	public Collection getEvents() throws IOException {
 		if (getAddress().equals("")) {
 			throw new IOException("No address given for calendar '" + getHostname() + "'");
 		}
-		SardineDAVAccess website = new SardineDAVAccess(getHostname(), getUsername(), getPassword());
-		InputStream is = website.read(getAddress());
-		if (is == null) {
-			throw new IOException("No data available for calendar '" + getHostname() + "'");
-		} else {
-			CalendarBuilder builder = new CalendarBuilder();
-			iCal = builder.build(is);
-			events = iCal.getComponents(Component.VEVENT);
+		Sardine webdav = new SardineTrustAlways(getUsername(), getPassword());
+		// handle CalDAV directory of iCal files
+		try {
+			// get list of resources at given address
+			URI base = new URI(getAddress());
+			logger.debug("Investigating URL " + base);
+			List<DavResource> resources = webdav.list(getAddress());
+			// reformat resources to get correct URI
+			List<URI> calendars = resources.stream()
+							.filter(r -> r.getContentType().contains("calendar"))
+							.map(r -> resource2uri(base, r))
+							.collect(Collectors.toList());
+			// read the events from all calendars
+			Collection events = calendars.stream()
+							// read and parse calendar from given URI
+							.map(url -> {
+								try {
+									logger.debug("Found calendar " + url);
+									InputStream is = webdav.get(url.toString());
+									CalendarBuilder builder = new CalendarBuilder();
+									return builder.build(is);
+								} catch (IOException ex) {
+									logger.warn("Error reading address " + url + ": " + ex.getLocalizedMessage());
+								} catch (ParserException ex) {
+									logger.warn("Error parsing calendar " + url + ": " + ex.getLocalizedMessage());
+								}
+								return new Calendar();
+							})
+							// extract a list of all events
+							.map(cal -> cal.getComponents(Component.VEVENT))
+							// flatten the list of lists of events
+							.flatMap(l -> l.stream())
+							.collect(Collectors.toList());
+			logger.info("Found " + events.size() + " Events in " + calendars.size()
+							+ " Calendar files in calendar " + getHostname());
+			return events;
+		} catch (IOException | URISyntaxException ex) {
+			logger.debug(ex.getLocalizedMessage());
 		}
-		return events;
+		// handle single iCal file
+		InputStream in_stream = webdav.get(getAddress());
+		if (in_stream != null) {
+			Collection events = new ArrayList();
+			try {
+				CalendarBuilder builder = new CalendarBuilder();
+				Calendar iCal = builder.build(in_stream);
+				events = iCal.getComponents(Component.VEVENT);
+			} catch (ParserException ex) {
+				logger.warn("Unable to parse calendar file at " + getAddress());
+				logger.warn(ex.getLocalizedMessage());
+			}
+			logger.info("Found iCal file with " + events.size()
+							+ " entries for calendar " + getHostname());
+			return events;
+		}
+		logger.warn("Could not get valid calendar information for calendar "
+						+ getHostname());
+		return new ArrayList();
 	}
 
 	/**
-	 * Create a string representation of the calendar.
-	 * 
-	 * @param filter_  filter for events
-	 * @return  string representation for the calendar events
-	 * @throws IOException
-	 * @throws ParserException 
+	 * Convert a list of calendar events into textual representation.
+	 *
+	 * @param events_ list of calendar events
+	 * @return textual representation
 	 */
-	public String toString(Filter filter_) throws IOException, ParserException {
-		Collection filtered_events;
-		if (filter_ != null) {
-			filtered_events = filter_.filter(getEvents());
-		} else {
-			filtered_events = getEvents();
-		}
-		return filtered_events.stream()
+	public static String eventlist_to_string(Collection events_) {
+		return events_.stream()
 						.map(ev -> event_to_string((VEvent) ev))
 						.collect(Collectors.joining("\n"))
 						.toString();
@@ -94,11 +136,11 @@ public class RemoteCalendar {
 
 	/**
 	 * Convert an event to a string representation.
-	 * 
-	 * @param event  the given event
-	 * @return  string representation of event
+	 *
+	 * @param event the given event
+	 * @return string representation of event
 	 */
-	protected String event_to_string(VEvent event) {
+	public static String event_to_string(VEvent event) {
 		StringBuilder builder = new StringBuilder();
 		// Event time
 		DtStart start = event.getStartDate();
@@ -127,28 +169,37 @@ public class RemoteCalendar {
 	}
 
 	/**
-	 * Static method to filter all given calendars for events and generate
-	 * a string representation.
-	 * 
-	 * @param calendars  calendars to be combined and filtered
-	 * @param filter  filter for events
-	 * @return  string representation
+	 * Static method to filter all given calendars for events and generate a
+	 * string representation.
+	 *
+	 * @param calendars calendars to be combined and filtered
+	 * @param filter_ filter for events
+	 * @return a collection of all filtered events
 	 */
-	public static String filterAll(List<RemoteCalendar> calendars, Filter filter) {
-		String all_events = calendars.stream()
-						.map(cal -> {
+	public static Collection filterAll(List<RemoteCalendar> calendars, Filter filter_) {
+		// collect events of all calendars and sort them chronologically
+		Collection events = (Collection) calendars.stream()
+						.map(c -> {
 							try {
-								return cal.toString(filter);
-							} catch (IOException | ParserException ex) {
+								return c.getEvents();
+							} catch (IOException ex) {
 								logger.warn(ex.getLocalizedMessage());
+								return new ArrayList<VEvent>();
 							}
-							return "";
 						})
-						.filter(txt -> !txt.isEmpty())
-						.collect(Collectors.joining("\n"));
-		return all_events;
+						.flatMap(l -> l.stream())
+						.sorted(new EventComparator())
+						.collect(Collectors.toList());
+		// filter the events using the given filter
+		Collection filtered_events;
+		if (filter_ != null) {
+			filtered_events = filter_.filter(events);
+		} else {
+			filtered_events = events;
+		}
+		return filtered_events;
 	}
-	
+
 	/**
 	 * @return the hostname
 	 */

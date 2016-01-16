@@ -2,6 +2,7 @@
 Sven Bauhan <sde@sven.bauhan.name>
 :doctype: book
 :encoding: utf-8
+:revnumber: 0.2
 :lang: en
 :toc: left
 :numbered:
