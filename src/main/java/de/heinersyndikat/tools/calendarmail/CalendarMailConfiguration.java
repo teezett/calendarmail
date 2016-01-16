@@ -6,11 +6,14 @@ import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import java.io.Console;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Scanner;
 import java.util.stream.Collectors;
@@ -31,6 +34,11 @@ public enum CalendarMailConfiguration {
 	 */
 	private static transient final Logger logger
 					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
+	/**
+	 * Application properties
+	 */
+	final static String APP_PROP_RESSOURCE = "/app.properties";
+	private Properties appProperties = null;
 	/**
 	 * HOCON configuration keyword
 	 */
@@ -74,6 +82,25 @@ public enum CalendarMailConfiguration {
 	 */
 	public void setConfigurationFile(String confFile) {
 		this.configurationFile = confFile;
+	}
+
+	/**
+	 * Load the application properties.
+	 */
+	private void load_properties() {
+		// Get application properties
+		InputStream propertiesStream = CalendarMail.class.getResourceAsStream(APP_PROP_RESSOURCE);
+		logger.debug("Application property Stream: " + propertiesStream);
+		appProperties = new Properties();
+		try {
+			getAppProperties().load(propertiesStream);
+			getAppProperties().stringPropertyNames().stream().forEach((key) -> {
+				String value = getAppProperties().getProperty(key, "");
+				logger.debug("application property: " + key + " => " + value);
+			});
+		} catch (IOException ex) {
+			logger.warn("Unable to load application properties: " + ex.getLocalizedMessage());
+		}
 	}
 
 	public void load() throws ConfigException {
@@ -197,6 +224,16 @@ public enum CalendarMailConfiguration {
 	 */
 	public ResourceBundle getMessages() {
 		return messages;
+	}
+
+	/**
+	 * @return the appProperties
+	 */
+	public Properties getAppProperties() {
+		if (appProperties == null) {
+			load_properties();
+		}
+		return appProperties;
 	}
 
 }
