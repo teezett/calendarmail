@@ -13,6 +13,11 @@
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<project.mainClass>de.heinersyndikat.tools.calendarmail.CalendarMail</project.mainClass>
+		<application.version>${project.version}</application.version>
+		<application.name>${project.name}</application.name>
+		<application.url>${project.url}</application.url>
+		<application.vendorName>Heinersyndikat e.V.</application.vendorName>
+		<application.vendorURL>http://www.heinersyndikat.de</application.vendorURL>
 		<project.vendor>de.heinersyndikat.calendarmail</project.vendor>
 		<asciidoctor.maven.plugin.version>1.5.2.1</asciidoctor.maven.plugin.version>
 		<asciidoctorj.version>1.5.3.2</asciidoctorj.version>
@@ -157,6 +162,23 @@
 		</resources>
 				
 		<plugins>
+			<!-- Generate properties file from pom.xml properties -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>properties-maven-plugin</artifactId>
+				<version>1.0-alpha-2</version>
+				<executions>
+					<execution>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>write-project-properties</goal>
+						</goals>
+						<configuration>
+							<outputFile>${project.build.outputDirectory}/app.properties</outputFile>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<!-- jgitflow plugin to create releases -->
 			<plugin>
 				<groupId>external.atlassian.jgitflow</groupId>
@@ -167,7 +189,7 @@
 				</configuration>
 			</plugin>
 			<!-- Javadoc -->
-<!--			<plugin>
+			<!--			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>2.10.3</version>

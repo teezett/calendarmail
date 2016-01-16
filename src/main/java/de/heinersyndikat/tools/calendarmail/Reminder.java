@@ -7,6 +7,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 import javax.mail.Address;
@@ -132,8 +133,12 @@ public class Reminder {
 		String intro = bodyFormat.format(params);
 		// Create the email signature text
 		MessageFormat sigFormat = new MessageFormat(message_bundle.getString("email.body.signature"));
-		Object[] sig_params = {"CalendarMail", "https://github.com/teezett/calendarmail",
-			"http://www.heinersyndikat.de/"};
+		Properties app_prop = CalendarMailConfiguration.INSTANCE.getAppProperties();
+		Object[] sig_params = {app_prop.getProperty("application.name", "CalendarMail"),
+			app_prop.getProperty("application.version", ""),
+			app_prop.getProperty("application.url", ""),
+			app_prop.getProperty("application.vendorName", "Heinersyndikat e.V."),
+			app_prop.getProperty("application.vendorURL", "")};
 		String signature = sigFormat.format(sig_params);
 		// combine the message body parts
 		StringBuilder builder = new StringBuilder();

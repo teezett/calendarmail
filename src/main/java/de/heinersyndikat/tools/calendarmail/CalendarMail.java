@@ -1,8 +1,6 @@
 package de.heinersyndikat.tools.calendarmail;
 
 import com.typesafe.config.ConfigException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Optional;
 import java.util.Properties;
 import org.slf4j.Logger;
@@ -31,32 +29,8 @@ public enum CalendarMail {
 	private static transient final Logger logger
 					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
 
-	/**
-	 * Application properties
-	 */
-	final static String APP_PROP_RESSOURCE = "/application.properties";
-	Properties appProperties = new Properties();
-
 	private static Optional<String> to_encrypt = Optional.empty();
 	private static Optional<String> to_decrypt = Optional.empty();
-
-	/**
-	 * Load the application properties.
-	 */
-	private void load_properties() {
-		// Get application properties
-		InputStream propertiesStream = CalendarMail.class.getResourceAsStream(APP_PROP_RESSOURCE);
-		logger.debug("Application property Stream: " + propertiesStream);
-		try {
-			appProperties.load(propertiesStream);
-			appProperties.stringPropertyNames().stream().forEach((key) -> {
-				String value = appProperties.getProperty(key, "");
-				logger.debug("application property: " + key + " => " + value);
-			});
-		} catch (IOException ex) {
-			logger.warn("Unable to load application properties: " + ex.getLocalizedMessage());
-		}
-	}
 
 	/**
 	 * Define the command line options.
@@ -110,8 +84,10 @@ public enum CalendarMail {
 	protected void start(CommandLine cmdline) {
 		// help
 		if (cmdline.hasOption("h")) {
+			Properties appProperties = CalendarMailConfiguration.INSTANCE.getAppProperties();
 			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp("CalendarMail", defineOptions());
+			String app_name = appProperties.getProperty("application.name", "CalendarMail");
+			formatter.printHelp(app_name, defineOptions());
 			System.exit(0);
 		}
 		// load configuration file
@@ -148,7 +124,7 @@ public enum CalendarMail {
 	 */
 	protected void init(String[] args) {
 		// load application properties
-		load_properties();
+		Properties appProperties = CalendarMailConfiguration.INSTANCE.getAppProperties();
 		String version = appProperties.getProperty("application.version", "");
 		String app_name = appProperties.getProperty("application.name", "CalendarMail");
 		System.out.println(app_name + " [" + version + "]: Sending reminder for calendar entries via email");
