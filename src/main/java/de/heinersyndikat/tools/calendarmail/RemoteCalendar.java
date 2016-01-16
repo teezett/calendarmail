@@ -74,20 +74,26 @@ public class RemoteCalendar {
 							.map(r -> resource2uri(base, r))
 							.collect(Collectors.toList());
 			// read the events from all calendars
-			Collection events = new ArrayList();
-			calendars.stream().forEach((calendar) -> {
-				try {
-					logger.debug("Found calendar " + calendar);
-					InputStream is = webdav.get(calendar.toString());
-					CalendarBuilder builder = new CalendarBuilder();
-					Calendar iCal = builder.build(is);
-					events.addAll(iCal.getComponents(Component.VEVENT));
-				} catch (IOException ex) {
-					logger.warn("Error reading address " + calendar + ": " + ex.getLocalizedMessage());
-				} catch (ParserException ex) {
-					logger.warn("Error parsing calendar " + calendar + ": " + ex.getLocalizedMessage());
-				}
-			});
+			Collection events = calendars.stream()
+							// read and parse calendar from given URI
+							.map(url -> {
+								try {
+									logger.debug("Found calendar " + url);
+									InputStream is = webdav.get(url.toString());
+									CalendarBuilder builder = new CalendarBuilder();
+									return builder.build(is);
+								} catch (IOException ex) {
+									logger.warn("Error reading address " + url + ": " + ex.getLocalizedMessage());
+								} catch (ParserException ex) {
+									logger.warn("Error parsing calendar " + url + ": " + ex.getLocalizedMessage());
+								}
+								return new Calendar();
+							})
+							// extract a list of all events
+							.map(cal -> cal.getComponents(Component.VEVENT))
+							// flatten the list of lists of events
+							.flatMap(l -> l.stream())
+							.collect(Collectors.toList());
 			logger.info("Found " + events.size() + " Events in " + calendars.size()
 							+ " Calendar files in calendar " + getHostname());
 			return events;
@@ -110,13 +116,14 @@ public class RemoteCalendar {
 							+ " entries for calendar " + getHostname());
 			return events;
 		}
-		logger.warn("Could not get valid calendar information for calendar " + getHostname());
+		logger.warn("Could not get valid calendar information for calendar "
+						+ getHostname());
 		return new ArrayList();
 	}
 
 	/**
 	 * Convert a list of calendar events into textual representation.
-	 * 
+	 *
 	 * @param events_ list of calendar events
 	 * @return textual representation
 	 */
@@ -176,6 +183,7 @@ public class RemoteCalendar {
 							try {
 								return c.getEvents();
 							} catch (IOException ex) {
+								logger.warn(ex.getLocalizedMessage());
 								return new ArrayList<VEvent>();
 							}
 						})
