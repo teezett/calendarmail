@@ -4,8 +4,10 @@ import java.text.MessageFormat;
 import java.text.ParseException;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 import javax.mail.Address;
@@ -86,7 +88,7 @@ public class Reminder {
 	/**
 	 * Get the defined filter for this reminder.
 	 *
-	 * @return
+	 * @return created filter
 	 */
 	protected Filter getFilter() {
 		// get actual timestamp (beginning of day)
@@ -108,12 +110,19 @@ public class Reminder {
 	 * @return string containing message body
 	 */
 	protected String createBody() {
+		// Create textual representation for all calendar events
+		logger.info("Fetching calendar information for reminder [" + getName()
+						+ "] ...");
 		List<RemoteCalendar> calendars = CalendarMailConfiguration.INSTANCE.getCalendars();
-		String all_events = RemoteCalendar.filterAll(calendars, getFilter());
-		if (all_events.isEmpty()) {
+		Collection events = RemoteCalendar.filterAll(calendars, getFilter());
+		if (events.isEmpty()) {
 			logger.info("No events for reminder [" + getName() + "] - Skip sending");
 			return "";
 		}
+		logger.info("Found " + events.size() + " relevant entries for reminder ["
+						+ getName() + "]");
+		String all_events = RemoteCalendar.eventlist_to_string(events);
+		// Create the email body entry text
 		ResourceBundle message_bundle = CalendarMailConfiguration.INSTANCE.getMessages();
 		logger.debug("Events[" + getName() + "]:\n" + all_events);
 		MessageFormat bodyFormat = new MessageFormat(message_bundle.getString("email.body.intro"));
@@ -122,10 +131,21 @@ public class Reminder {
 						.collect(Collectors.joining(", "));
 		Object[] params = {getName(), getDays_in_advance(), calendarNames};
 		String intro = bodyFormat.format(params);
+		// Create the email signature text
+		MessageFormat sigFormat = new MessageFormat(message_bundle.getString("email.body.signature"));
+		Properties app_prop = CalendarMailConfiguration.INSTANCE.getAppProperties();
+		Object[] sig_params = {app_prop.getProperty("application.name", "CalendarMail"),
+			app_prop.getProperty("application.version", ""),
+			app_prop.getProperty("application.url", ""),
+			app_prop.getProperty("application.vendorName", "Heinersyndikat e.V."),
+			app_prop.getProperty("application.vendorURL", "")};
+		String signature = sigFormat.format(sig_params);
+		// combine the message body parts
 		StringBuilder builder = new StringBuilder();
 		builder.append(intro);
 		builder.append(all_events);
 		builder.append(message_bundle.getString("email.body.greeting"));
+		builder.append(signature);
 		return builder.toString();
 	}
 
@@ -147,7 +167,7 @@ public class Reminder {
 			Object[] params = {getName(), new Date()};
 			String subject = subjectFormat.format(params);
 			message.setSubject(subject);
-			message.setText(createBody());
+			message.setText(body);
 			receivers.stream().forEach(rec -> {
 				try {
 					Address addr = new InternetAddress(rec, true);
