@@ -1,0 +1,46 @@
+[[section-system-scope-and-context]]
+== System Scope and Context
+
+ 
+
+
+
+=== Business Context
+
+.Business context
+[plantuml, business_context, png]
+--
+cloud "Web-Calendar" as webcalendar 
+webcalendar -left- WebDAV
+
+agent "Email-Server" as email_server
+email_server -left- SMTP
+
+frame CalendarMail
+CalendarMail -( WebDAV
+CalendarMail -down-( SMTP
+--
+
+=== Technical Context
+
+.Technical context
+[plantuml, technical_context, png]
+--
+cloud "Web-Calendar" as webcalendar 
+
+cloud "Cloud-Calendar" as cloud_calendar
+
+agent "Email-Server" as email_server
+
+frame CalendarMail
+CalendarMail <-up- webcalendar : iCal
+CalendarMail <- cloud_calendar : CalDAV
+CalendarMail -down-> email_server : Email
+--
+
+
+
+=== External Interfaces
+
+
+

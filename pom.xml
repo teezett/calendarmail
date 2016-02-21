@@ -251,6 +251,9 @@
 						</dependencies>
 						<configuration>
 							<sourceDirectory>src/docs/asciidoc</sourceDirectory>
+							<moduleExcludes>
+								<asciidoc>**/includes/*.adoc</asciidoc>
+							</moduleExcludes>
 							<requires>
 								<require>asciidoctor-diagram</require>
 							</requires>

@@ -41,7 +41,7 @@ public class ReminderJob implements Job {
 	 * Scheduler instance
 	 */
 	protected static Scheduler sched;
-	
+
 	/**
 	 * Start scheduling of reminders.
 	 */
@@ -53,9 +53,16 @@ public class ReminderJob implements Job {
 			Map<String, Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
 			reminders.values().stream().forEach(rem -> {
 				JobDetail job = rem.createJob();
+				logger.debug("Created scheduler job for reminder [" + rem.getName() + "]");
 				try {
 					Trigger trigger = rem.createTrigger();
 					sched.scheduleJob(job, trigger);
+					if (rem.isCron_triggered()) {
+						logger.info("Reminder [" + rem.getName() + "] scheduled with cron trigger '"
+										+ rem.getCron_trigger() + "'");
+					} else {
+						logger.info("Reminder [" + rem.getName() + "] scheduled for one single execution");
+					}
 				} catch (java.text.ParseException ex) {
 					logger.warn("Cannot parse cron trigger: " + ex.getLocalizedMessage());
 				} catch (SchedulerException ex) {
@@ -81,7 +88,7 @@ public class ReminderJob implements Job {
 		}
 	}
 
-/**
+	/**
 	 * Execution implementation.
 	 *
 	 * @param jec execution context

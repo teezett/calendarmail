@@ -65,7 +65,7 @@ This will be done when the property `release` is defined:
 
 The following documentation is available and generated within the project:
 
-link:src/docs/asciidoc/manual.adoc[CalendarMail User Manual]::
+<<src/docs/asciidoc/manual.adoc#,CalendarMail User Manual>>::
 User Manual for the description of parameters and configuration of CalendarMail
 
 link:src/docs/asciidoc/requirements.adoc[Requirements for CalendarMail]::

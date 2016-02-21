@@ -1,0 +1,51 @@
+[[section-architecture-constraints]]
+== Architecture Constraints
+
+
+
+
+=== Technical Constraints
+
+
+
+
+.List of Technical Constraints
+[options="header",cols="<.<1,<.<4"]
+|===
+2+^e|  Technical Constraints
+2+^e|  Hardware Constraints
+| C1                                | Runnable on virtual server
+2+^e| Software Constraints
+2+^e| Operating System Constraints
+| C7                               | Runnable on a Unix/Linux server
+2+^e| Programming Constraints
+| C10                         | 
+| C11                         | Usage of a common programming language
+| C12                         | Easy build and deployment
+|===
+
+
+
+=== Organizational Constraints
+
+
+
+.List of Organizational Constraints
+[options="header",cols="<.<1,<.<4"]
+|===
+2+^e| Organizational Constraints
+2+^e| Organization and Structure
+2+^e| Resources (Budget, Time, Personnel)
+2+^e| Organizational Standards
+2+^e| Legal Factors
+|===
+
+
+
+
+=== Conventions
+
+ * For version control http://git-scm.com/[git] shall be used.
+ * The sources have to be hosted on a server repository.
+ * Usage a hosting server tool like https://github.com/[github] or https://gitlab.com/[gitlab] is recommended.
+ 

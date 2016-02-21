@@ -7,8 +7,6 @@
 include::_config.adoc[]
 
 = Architecture of project CalendarMail
-// toc-title definition MUST follow document title without blank line!
-//:toc-title: Table of Contents
 
 //additional style for arc42 help callouts
 ifdef::basebackend-html[]
@@ -27,7 +25,7 @@ endif::basebackend-html[]
 
 This document describes the software architecture of <<index.adoc#,project CalendarMail>>.
 
-include::includes/_about-arc42.adoc[]
+//include::arc42/_about-arc42.adoc[]
 
 // horizontal line
 ***
@@ -45,51 +43,51 @@ For documentation of your own system you use better the _plain_ version.
 
 <<<<
 // 1. Introduction and Goals
-include::includes/_01_introduction_and_goals.adoc[]
+include::arc42/_01_introduction_and_goals.adoc[]
 
 <<<<
 // 2. Architecture Constraints
-include::includes/_02_architecture_constraints.adoc[]
+include::arc42/_02_architecture_constraints.adoc[]
 
 <<<<
 // 3. System Scope and Context
-//include::03_system_scope_and_context.adoc[]
+include::arc42/_03_system_scope_and_context.adoc[]
 
 <<<<
 // 4. Solution Strategy
-//include::04_solution_strategy.adoc[]
+//include::arc42/_04_solution_strategy.adoc[]
 
 <<<<
 // 5. Building Block View
-//include::05_building_block_view.adoc[]
+//include::arc42/_05_building_block_view.adoc[]
 
 <<<<
 // 6. Runtime View
-//include::06_runtime_view.adoc[]
+//include::arc42/_06_runtime_view.adoc[]
 
 <<<<
 // 7. Deployment View
-//include::07_deployment_view.adoc[]
+//include::arc42/_07_deployment_view.adoc[]
 
 <<<<
 // 8. Concepts
-//include::08_concepts.adoc[]
+//include::arc42/_08_concepts.adoc[]
 
 <<<<
 // 9. Design Decisions
-//include::09_design_decisions.adoc[]
+//include::arc42/_09_design_decisions.adoc[]
 
 <<<<
 // 10. Quality Scenarios
-//include::10_quality_scenarios.adoc[]
+//include::arc42/_10_quality_scenarios.adoc[]
 
 <<<<
 // 11. Technical Risks
-//include::11_technical_risks.adoc[]
+//include::arc42/_11_technical_risks.adoc[]
 
 <<<<
 // 12. Glossary
-//include::12_glossary.adoc[]
+//include::arc42/_12_glossary.adoc[]
 
 
 // appendices:
@@ -97,16 +95,16 @@ include::includes/_02_architecture_constraints.adoc[]
 
 <<<<
 // Appendix References
-//include::appendix-references.adoc[]
+//include::arc42/_appendix-references.adoc[]
 
 <<<<
 // Appendix Examples
-//include::appendix-examples.adoc[]
+//include::arc42/_appendix-examples.adoc[]
 
 <<<<
 // Contributing and Contributors
-//include::appendix-contributing.adoc[]
+//include::arc42/_appendix-contributing.adoc[]
 
 <<<<
 // Approved Practitioner for arc42
-//include::appendix-practitioner.adoc[]
+//include::arc42/_appendix-practitioner.adoc[]
