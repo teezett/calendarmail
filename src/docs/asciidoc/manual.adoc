@@ -1,13 +1,9 @@
-= CalendarMail User Manual
-:name: Sven Bauhan
-:email: sde@sven.bauhan.name
-:doctype: book
-:encoding: utf-8
-:revnumber: 0.1.1
-:lang: en
-:toc: left
-:numbered:
+// configure EN settings for asciidoc
+include::_config.adoc[]
 
+= CalendarMail User Manual
+
+This document describes the usage of the tool <<index.adoc#,CalendarMail>>.
 
 == Overview
 

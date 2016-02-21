@@ -1,13 +1,11 @@
+// configure EN settings for asciidoc
+include::_config.adoc[]
+
 = Requirements for CalendarMail
-Sven Bauhan <sde@sven.bauhan.name>
-:doctype: book
-:encoding: utf-8
-:revnumber: 0.1.1
-:lang: en
-:toc: left
-:numbered:
 
+This document describes the requirements of <<index.adoc#,project CalendarMail>>.
 
+[[section-goals]]
 == Goals
 
 The intention of this project is to solve the following goals:
@@ -17,6 +15,7 @@ The intention of this project is to solve the following goals:
 * Regularly send email reminders containing a summary of the following events
 
 
+[[section-domain-model]]
 == Domain Model
 
 [glossary]
@@ -34,6 +33,7 @@ Scheduler::
 A program part that triggers jobs to be executed at a time when it is configured.
 
 
+[[section-usecase-overview]]
 == Use Case Overview
 
 For the software the following use cases have been identified:
@@ -71,6 +71,7 @@ rectangle CalendarMail {
 --
 
 
+[[section-detailed-usecases]]
 == Detailed use cases
 
 The identified use cases will be described below.
@@ -78,18 +79,17 @@ The https://www.sophist.de/fileadmin/SOPHIST/UML/uml2-4_linknummern/12-1_Schablo
 
 === Encrypt/decrypt
 
-Goal::
-Encrypt / Decrypt a password for usage in configuration
+[[usecase-encrypt-decrypt]]
+.UseCase Encrypt/Decrypt
+[cols=">.^1s,<10"]
+|====
+|Goal | Encrypt / Decrypt a password for usage in configuration
+|Actors | user
+|Trigger | The user provides a password to be encrypted/decrypted on the commandline
+|Steps | in <<steps-encrypt-decrypt, diagram>>
+|====
 
-Actors::
-user
-
-Trigger::
-The user provides a password to be encrypted/decrypted on the commandline.
-
-Steps::
-in diagram:
-+
+[[steps-encrypt-decrypt]]
 .Encryption/Decryption of a password
 [plantuml, encryption-case, png]
 --
@@ -105,18 +105,17 @@ stop
 
 === Read configuration
 
-Goal::
-A configuration file has to be interpreted.
+[[usecase-read-config]]
+.UseCase Encrypt/Decrypt
+[cols=">.^1s,<10"]
+|====
+|Goal | A configuration file has to be interpreted
+|Actors | system
+|Trigger | At system start a configuration file is provided to be used
+|Steps | in <<steps-read-config, diagram>>
+|====
 
-Actors::
-system
-
-Trigger::
-At system start a configuration file is provided to be used.
-
-Steps::
-in diagram:
-+
+[[steps-read-config]]
 .Reading configuration file
 [plantuml, configuration-case, png]
 --

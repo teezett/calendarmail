@@ -1,0 +1,37 @@
+[[section-introduction-and-goals]]
+== Introduction and Goals
+
+
+The introduction to the architecture documentation should list the driving forces that software architects must consider in their decisions.
+This includes on the one hand the fulfillment of functional requirements of the stakeholders, on the other hand the fulfillment of or compliance with required constraints, always in consideration of the architecture goals.
+
+=== Requirements Overview
+
+The requirements are described in the document <<requirements.adoc#>>.
+It containts the <<requirements.adoc#section-goals,goals>> of the project and an <<requirements.adoc#section-usecase-overview,overview of the use cases>>.
+
+
+=== Quality Goals
+
+The following quality goals are important for this project:
+
+.Quality Goals
+[cols="^.^1s,<10"]
+|====
+| anchor:g-goal-stability[Stability] Stability | As the program is idle most of the time and only activated sometimes, a crash is not recognized easily. So it has to be running reliably.
+| [[g-goal-maintainability,Maintainability]] Maintainability | There is not much time to implement the code. So the code has to be maintained by other developer. Then an easy access is needed.
+| [[g-goal-useability,Useability]] Useability | Also the admins have to run and configure the program easily.
+|====
+
+=== Stakeholders
+
+The following stakeholders are investigated for this project:
+
+.Stakeholders
+[options="header",cols="<.<1,<.<2,<.<2"]
+|===
+|Role/Name|Goal/Boundaries|Expected Participation and Contribution
+| Developer | It is his project | implementation
+| Administrator | Configures and monitores the program | Requirements, Feedback
+| User | Want to get overview of dates | Feedback
+|===
