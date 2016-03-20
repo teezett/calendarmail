@@ -45,37 +45,127 @@ left to right direction
 actor "system manager" as user
 actor "cron job" as cron
 rectangle CalendarMail {
- (single execution) as (single)
- (start cron) as (start)
- (read configuration) as (config)
- (send reminder) as (remind)
- (fetch remote calendar) as (fetch)
- (filter calendar events) as (filter)
- (send reminder email) as (email)
- (start job trigger) as (trigger)
+    (single execution) as (single)
+    (start cron) as (start)
+    (read configuration) as (config)
+    (send reminder) as (remind)
+    (fetch remote calendar) as (fetch)
+    (filter calendar events) as (filter)
+    (send reminder email) as (email)
+    (start job trigger) as (trigger)
 
- user --> (encrypt)
- user --> (decrypt)
- user --> (start)
- cron --> (single)
- (start) ..> (config) : <<include>>
- (single) ..> (config) : <<include>>
- (start) ..> (trigger) : <<include>>
- (single) ..> (trigger) : <<include>>
- actor scheduler
- scheduler -up-> (remind)
- (remind) ..> (filter) : <<include>>
- (filter) .up.> (fetch) : <<include>>
- (remind) ..> (email) : <<include>>
+    user --> (encrypt)
+    user --> (decrypt)
+    user --> (start)
+    cron --> (single)
+    (start) ..> (config) : <<include>>
+    (single) ..> (config) : <<include>>
+    (start) ..> (trigger) : <<include>>
+    (single) ..> (trigger) : <<include>>
+    actor scheduler
+    scheduler -up-> (remind)
+    (remind) ..> (filter) : <<include>>
+    (filter) .up.> (fetch) : <<include>>
+    (remind) ..> (email) : <<include>>
 }
 --
 
 
-[[section-detailed-usecases]]
-== Detailed use cases
-
 The identified use cases will be described below.
-The https://www.sophist.de/fileadmin/SOPHIST/UML/uml2-4_linknummern/12-1_Schablone_fuer_%20Use-Case-Beschreibung.pdf[use case template of the SOPHIST group] will be used here.
+The https://www.sophist.de/fileadmin/SOPHIST/UML/uml2-4_linknummern/12-1_Schablone_fuer_%20Use-Case-Beschreibung.pdf[use case template of the SOPHIST group] and the http://alistair.cockburn.us/Use+case+fundamentals[description of Alistair Cockburn] will be used here.
+Instead of a textual description of the steps activity diagrams are used.
+
+[[section-userlevel-usecases]]
+== User level use cases
+
+=== Encrypt/decrypt
+
+[[usecase-encrypt-decrypt]]
+.UseCase Encrypt/Decrypt
+[cols=">.^1s,<10"]
+|====
+|Goal | Encrypt / Decrypt a password for usage in configuration
+|Scope | system
+|Level | user
+|Preconditions |
+|Success condition | given phrase is encrypted/decrypted
+|Failure condition | decryption failed
+|Actors | <<actor-sys-man,system manager>>
+|Trigger | The user provides a password to be encrypted/decrypted on the commandline
+|Steps | in <<steps-encrypt-decrypt, diagram>>
+|====
+
+[[steps-encrypt-decrypt]]
+.Encryption/Decryption of a password
+[plantuml, encryption-case, png]
+--
+start
+:user executes program with string to be encrypted;
+if (password given?) then (no)
+    :promt for input of password;
+endif
+:encrypt string with given password;
+:print encrypted string;
+stop
+--
+
+=== Start cron
+
+[[usecase-start-cron]]
+.UseCase Start cron triggered reminders
+[cols=">.^1s,<10"]
+|====
+|Goal | Cron triggers for reminders shall be started
+|Scope | system
+|Level | user
+|Preconditions | the configuration is valid (<<usecase-read-config,UseCase "read configuration">>), cron triggers are defined
+|Success condition | the reminder jobs are running
+|Failure condition | program exit with failure
+|Actors | <<actor-sys-man,system manager>>
+|Trigger | The user starts a configuration with cron triggered reminders
+|Steps | in <<steps-start-cron, diagram>>
+|====
+
+[[steps-start-cron]]
+.Starting cron triggered reminders
+[plantuml, start-cron, png]
+--
+start
+:call usecase "read configuration";
+:call usecase "start job triggers";
+stop
+--
+
+=== Single execution
+
+[[usecase-single-execution]]
+.UseCase Single execution
+[cols=">.^1s,<10"]
+|====
+|Goal | All reminders shall be started once
+|Scope | system
+|Level | user
+|Preconditions | the configuration is valid (<<usecase-read-config,UseCase "read configuration">>)
+|Success condition | the reminders are executed once and the program exits
+|Failure condition | program exit with failure
+|Actors | <<actor-cron-job,cron job>>, <<actor-sys-man,system manager>>
+|Trigger | The user starts a configuration with reminders to be started once
+|Steps | in <<steps-single-execution, diagram>>
+|====
+
+[[steps-single-execution]]
+.Single execution of all configured reminders
+[plantuml, single-execution, png]
+--
+start
+:call usecase "read configuration";
+:call usecase "start job triggers";
+stop
+--
+
+
+[[section-function-level-usecases]]
+== Sub-function level use cases
 
 === Fetch remote calendar
 
@@ -84,6 +174,11 @@ The https://www.sophist.de/fileadmin/SOPHIST/UML/uml2-4_linknummern/12-1_Schablo
 [cols=">.^1s,<10"]
 |====
 |Goal | Fetch all events from a remote calendar
+|Scope | system
+|Level | sub-function
+|Preconditions | an URI and username/password (if necessary) is given
+|Success condition | calendar events read
+|Failure condition | I/O Error
 |Actors | system
 |Trigger | A reminder is activated and needs the calendar events
 |Steps | in <<steps-fetch-calendar, diagram>>
@@ -102,7 +197,7 @@ elseif (Does the URI point to a CalDAV directory?) then (yes)
     :read all events in these files;
 else (no)
     :report warning of unreadable data;
-    stop
+    end
 endif
 :create list of events;
 stop
@@ -115,6 +210,11 @@ stop
 [cols=">.^1s,<10"]
 |====
 |Goal | Get all events of a given time period
+|Scope | system
+|Level | sub-function
+|Preconditions | success of <<usecase-fetch-calendar,UseCase "Fetch calendar">>
+|Success condition |
+|Failure condition |
 |Actors | system
 |Trigger | A reminder is activated and needs the calendar events
 |Steps | in <<steps-filter-events, diagram>>
@@ -138,6 +238,11 @@ stop
 [cols=">.^1s,<10"]
 |====
 |Goal | Send a reminder email
+|Scope | system
+|Level | sub-function
+|Preconditions |
+|Success condition |
+|Failure condition |
 |Actors | system
 |Trigger | A reminder want to send an email with an event list
 |Steps | in <<steps-send-reminder-email, diagram>>
@@ -166,6 +271,11 @@ stop
 [cols=">.^1s,<10"]
 |====
 |Goal | Send a reminder
+|Scope | system
+|Level | sub-function
+|Preconditions |
+|Success condition |
+|Failure condition |
 |Actors | <<actor-scheduler,scheduler>>
 |Trigger | A reminder is triggered
 |Steps | in <<steps-send-reminder, diagram>>
@@ -179,35 +289,9 @@ start
 :call usecase "filter calendar events" to get the relevant events;
 if (list of events empty?) then (yes)
     :log a message that the reminder is skipped cause lack of relevant events;
-    stop
+    end
 endif
 :call usecase "send reminder email";
-stop
---
-
-=== Encrypt/decrypt
-
-[[usecase-encrypt-decrypt]]
-.UseCase Encrypt/Decrypt
-[cols=">.^1s,<10"]
-|====
-|Goal | Encrypt / Decrypt a password for usage in configuration
-|Actors | <<actor-sys-man,system manager>>
-|Trigger | The user provides a password to be encrypted/decrypted on the commandline
-|Steps | in <<steps-encrypt-decrypt, diagram>>
-|====
-
-[[steps-encrypt-decrypt]]
-.Encryption/Decryption of a password
-[plantuml, encryption-case, png]
---
-start
-:user executes program with string to be encrypted;
-if (password given?) then (no)
-    :promt for input of password;
-endif
-:encrypt string with given password;
-:print encrypted string;
 stop
 --
 
@@ -218,6 +302,11 @@ stop
 [cols=">.^1s,<10"]
 |====
 |Goal | A configuration file has to be interpreted
+|Scope | system
+|Level | sub-function
+|Preconditions |
+|Success condition |
+|Failure condition |
 |Actors | system
 |Trigger | At system start a configuration file is provided to be used
 |Steps | in <<steps-read-config, diagram>>
@@ -237,7 +326,7 @@ endif
 if (fatal error?) then (yes)
     :print error message;
     :exit;
-    stop
+    end
 elseif (acceptable error?) then (yes)
     :print warning message;
 else (no error)
@@ -260,6 +349,11 @@ stop
 [cols=">.^1s,<10"]
 |====
 |Goal | Cron triggers for reminders shall be started
+|Scope | system
+|Level | sub-function
+|Preconditions |
+|Success condition |
+|Failure condition |
 |Actors | system
 |Trigger | The system founds configured reminders to start
 |Steps | in <<steps-start-triggers, diagram>>
@@ -277,49 +371,5 @@ while (for each configured reminder)
         :create a reminder job triggered immidiatly;
     endif
 endwhile
-stop
---
-
-=== Start cron
-
-[[usecase-start-cron]]
-.UseCase Start cron triggered reminders
-[cols=">.^1s,<10"]
-|====
-|Goal | Cron triggers for reminders shall be started
-|Actors | <<actor-sys-man,system manager>>
-|Trigger | The user starts a configuration with cron triggered reminders
-|Steps | in <<steps-start-cron, diagram>>
-|====
-
-[[steps-start-cron]]
-.Starting cron triggered reminders
-[plantuml, start-cron, png]
---
-start
-:call usecase "read configuration";
-:call usecase "start job triggers";
-stop
---
-
-=== Single execution
-
-[[usecase-single-execution]]
-.UseCase Single execution
-[cols=">.^1s,<10"]
-|====
-|Goal | All reminders shall be started once
-|Actors | <<actor-cron-job,cron job>>, <<actor-sys-man,system manager>>
-|Trigger | The user starts a configuration with reminders to be started once
-|Steps | in <<steps-single-execution, diagram>>
-|====
-
-[[steps-single-execution]]
-.Single execution of all configured reminders
-[plantuml, single-execution, png]
---
-start
-:call usecase "read configuration";
-:call usecase "start job triggers";
 stop
 --
