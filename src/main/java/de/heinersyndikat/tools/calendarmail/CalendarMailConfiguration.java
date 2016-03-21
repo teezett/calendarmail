@@ -60,6 +60,11 @@ public enum CalendarMailConfiguration {
 	 */
 	private boolean singleExecution = false;
 	/**
+	 * name of reminder to be executed once
+	 */
+	private Optional<String> reminderName = Optional.empty();
+	
+	/**
 	 * configuration encryption password from commandline option
 	 */
 	private Optional<String> password = Optional.empty();
@@ -234,6 +239,20 @@ public enum CalendarMailConfiguration {
 			load_properties();
 		}
 		return appProperties;
+	}
+
+	/**
+	 * @return the reminderName
+	 */
+	public Optional<String> getReminderName() {
+		return reminderName;
+	}
+
+	/**
+	 * @param reminderName the reminderName to set
+	 */
+	public void setReminderName(String reminderName) {
+		this.reminderName = Optional.of(reminderName);
 	}
 
 }

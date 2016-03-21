@@ -16,14 +16,15 @@ These can be grouped in commands to be executed immidiately or let the program r
 An overview of the command line parameters is given when using the `-h` option:
 [source,shell]
 --
-> java -jar calendarmail-0.1.1-standalone.jar -h
-CalendarMail [0.1.1]: Sending reminder for calendar entries via email
+> java -jar calendarmail-0.1.2-standalone.jar -h
+CalendarMail [0.1.2]: Sending reminder for calendar entries via email
 usage: CalendarMail
  -e <string>     string to encrypt
  -f <file>       configuration file to be read
  -h              print this message
  -p <password>   encryption password
- -s              perform just one single execution of reminders
+ -r <name>       execute reminder with given name once
+ -s              perform just one single execution of all reminders
  -u <string>     string to unencrypt
 --
 
@@ -103,3 +104,5 @@ The operation of the application can be monitored externally via JMX.
 
 If you want to use a configuration with defined cron triggers to be executed once, you can set the commandline option `-s`.
 Then each reminder is triggered once at program start and the program is exited afterwards, just as if no cron trigger would be defined.
+
+With option `-r` you can select one reminder by its name to be executed once. The program exits after this single execution.

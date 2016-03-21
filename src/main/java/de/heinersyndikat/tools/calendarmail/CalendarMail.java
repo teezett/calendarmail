@@ -48,10 +48,16 @@ public enum CalendarMail {
 		OptionBuilder.withDescription("configuration file to be read");
 		Option opt = OptionBuilder.create("f");
 		options.addOption(opt);
+		// -r (single execution of named reminder)
+		OptionBuilder.withArgName("name");
+		OptionBuilder.hasArg(true);
+		OptionBuilder.withDescription("execute reminder with given name once");
+		opt = OptionBuilder.create("r");
+		options.addOption(opt);
 		// -s (single execution)
-		OptionBuilder.withArgName("single execution");
+//		OptionBuilder.withArgName("single execution");
 		OptionBuilder.hasArg(false);
-		OptionBuilder.withDescription("perform just one single execution of reminders");
+		OptionBuilder.withDescription("perform just one single execution of all reminders");
 		opt = OptionBuilder.create("s");
 		options.addOption(opt);
 		// -p encryption password
@@ -95,6 +101,12 @@ public enum CalendarMail {
 			logger.debug("found option -f");
 			String filename = cmdline.getOptionValue("f");
 			CalendarMailConfiguration.INSTANCE.setConfigurationFile(filename);
+		}
+		// execute a named reminder once
+		if (cmdline.hasOption("r")) {
+			logger.debug("found option -r");
+			String name = cmdline.getOptionValue("r");
+			CalendarMailConfiguration.INSTANCE.setReminderName(name);
 		}
 		// perform just one single execution
 		if (cmdline.hasOption("s")) {

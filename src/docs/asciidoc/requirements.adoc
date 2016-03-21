@@ -142,11 +142,11 @@ stop
 .UseCase Single execution
 [cols=">.^1s,<10"]
 |====
-|Goal | All reminders shall be started once
+|Goal | All or one named reminder(s) shall be started once
 |Scope | system
 |Level | user
 |Preconditions | the configuration is valid (<<usecase-read-config,UseCase "read configuration">>)
-|Success condition | the reminders are executed once and the program exits
+|Success condition | the reminder(s) are executed once and the program exits
 |Failure condition | program exit with failure
 |Actors | <<actor-cron-job,cron job>>, <<actor-sys-man,system manager>>
 |Trigger | The user starts a configuration with reminders to be started once
@@ -364,12 +364,29 @@ stop
 [plantuml, start-triggers, png]
 --
 start
-while (for each configured reminder)
-    if (cron trigger defined or single execution advised?) then (yes)
-        :create a reminder job triggered regularly as defined;
+if (a named reminder is selected
+to be started immediately?) then (yes)
+    if (a reminder
+with the given name
+is configured?) then (yes)
+        :create a reminder job
+        triggered immidiatly
+        for selected reminder;
     else (no)
-        :create a reminder job triggered immidiatly;
+        :log error message;
+        end
     endif
-endwhile
+else (no)
+    while (for each configured reminder) is (next)
+        if (no cron trigger defined
+or single execution advised?) then (yes)
+            :create a reminder job
+            triggered immidiatly;
+        else (no)
+            :create a reminder job
+            triggered regularly as defined;
+        endif
+    endwhile (done)
+endif
 stop
 --

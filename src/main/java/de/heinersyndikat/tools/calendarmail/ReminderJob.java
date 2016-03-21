@@ -50,30 +50,29 @@ public class ReminderJob implements Job {
 		try {
 			sched = schedFact.getScheduler();
 			// create job and trigger for each Reminder
-			Map<String, Reminder> reminders = CalendarMailConfiguration.INSTANCE.getReminders();
-			reminders.values().stream().forEach(rem -> {
-				JobDetail job = rem.createJob();
-				logger.debug("Created scheduler job for reminder [" + rem.getName() + "]");
-				try {
-					Trigger trigger = rem.createTrigger();
-					sched.scheduleJob(job, trigger);
-					if (rem.isCron_triggered()) {
-						logger.info("Reminder [" + rem.getName() + "] scheduled with cron trigger '"
-										+ rem.getCron_trigger() + "'");
-					} else {
-						logger.info("Reminder [" + rem.getName() + "] scheduled for one single execution");
-					}
-				} catch (java.text.ParseException ex) {
-					logger.warn("Cannot parse cron trigger: " + ex.getLocalizedMessage());
-				} catch (SchedulerException ex) {
-					logger.warn("Scheduling failed: " + ex.getLocalizedMessage());
+			CalendarMailConfiguration config = CalendarMailConfiguration.INSTANCE;
+			Map<String, Reminder> reminders = config.getReminders();
+			Optional<Reminder> cron_execution = Optional.empty();
+			if (config.getReminderName().isPresent()) {
+				String reminder_name = config.getReminderName().get();
+				Optional<Reminder> reminder = reminders.values().stream()
+								.filter(f -> f.getName().equals(reminder_name)).findAny();
+				if (reminder.isPresent()) {
+					config.setSingleExecution(true);
+					scheduleReminder(sched, reminder.get());
+				} else {
+					logger.error("Reminder with given name '" + reminder_name + "' not configured");
+					return;
 				}
-			});
+			} else {
+				reminders.values().stream()
+								.forEach(rem -> scheduleReminder(sched, rem));
+				cron_execution = reminders.values().stream()
+								.filter(Reminder::isCron_triggered).findAny();
+			}
 			// start scheduler
 			sched.start();
 			// if no cron triggers used, shutdown scheduler after first executions
-			Optional cron_execution = reminders.values().stream()
-							.filter(Reminder::isCron_triggered).findAny();
 			if (!cron_execution.isPresent()) {
 				try {
 					Thread.sleep(1000);
@@ -85,6 +84,31 @@ public class ReminderJob implements Job {
 		} catch (SchedulerException ex) {
 			logger.error("Scheduling failed: " + ex.getLocalizedMessage());
 			System.exit(6);
+		}
+	}
+
+	/**
+	 * Schedule a single reminder.
+	 * 
+	 * @param sched reference to scheduler
+	 * @param rem reminder to be scheduled
+	 */
+	private static void scheduleReminder(Scheduler sched, Reminder rem) {
+		JobDetail job = rem.createJob();
+		logger.debug("Created scheduler job for reminder [" + rem.getName() + "]");
+		try {
+			Trigger trigger = rem.createTrigger();
+			sched.scheduleJob(job, trigger);
+			if (rem.isCron_triggered()) {
+				logger.info("Reminder [" + rem.getName() + "] scheduled with cron trigger '"
+								+ rem.getCron_trigger() + "'");
+			} else {
+				logger.info("Reminder [" + rem.getName() + "] scheduled for one single execution");
+			}
+		} catch (java.text.ParseException ex) {
+			logger.warn("Cannot parse cron trigger: " + ex.getLocalizedMessage());
+		} catch (SchedulerException ex) {
+			logger.warn("Scheduling failed: " + ex.getLocalizedMessage());
 		}
 	}
 
