@@ -22,6 +22,8 @@ import net.fortuna.ical4j.data.ParserException;
 import net.fortuna.ical4j.filter.Filter;
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.Component;
+import net.fortuna.ical4j.model.Period;
+import net.fortuna.ical4j.model.PeriodList;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.property.DtEnd;
@@ -126,18 +128,22 @@ public class RemoteCalendar {
 	 * Convert a list of calendar events into textual representation.
 	 *
 	 * @param events_ list of calendar events
+	 * @param period_ actual time period
 	 * @return textual representation
 	 */
-	public static String eventlist_to_string(Collection events_) {
+	public static String eventlist_to_string(Collection events_, Period period_) {
+		Instant startDate = period_.getStart().toInstant();
+		LocalDateTime startLocal = LocalDateTime.ofInstant(startDate, ZoneId.systemDefault());
+		logger.debug(startLocal.format(DATE_FORMAT));
 		return events_.stream()
-						.map(ev -> event_to_string((VEvent) ev))
+						.map(ev -> event_to_string((VEvent) ev, period_))
 						.collect(Collectors.joining("\n"))
 						.toString();
 	}
 
 	/**
 	 * Check if the event is an all day event.
-	 * 
+	 *
 	 * @param event the event to be checked
 	 * @return according date format
 	 */
@@ -154,26 +160,33 @@ public class RemoteCalendar {
 	 * Convert an event to a string representation.
 	 *
 	 * @param event the given event
+	 * @param period the time period
 	 * @return string representation of event
 	 */
-	public static String event_to_string(VEvent event) {
+	public static String event_to_string(VEvent event, Period period) {
 		StringBuilder builder = new StringBuilder();
 		// Event time
 		DtStart start = event.getStartDate();
 		if (start != null) {
-//			event.calculateRecurrenceSet(null);
-			Instant startDate = start.getDate().toInstant();
-			LocalDateTime startLocal = LocalDateTime.ofInstant(startDate, ZoneId.systemDefault());
 			DateTimeFormatter format = getDateFormat(event);
-			builder.append(startLocal.format(format));
-			logger.debug("Start: " + startLocal.format(format));
-			DtEnd ending = event.getEndDate(true);
-			if (ending != null) {
-				LocalDateTime endLocal = LocalDateTime
-								.ofInstant(ending.getDate().toInstant(), ZoneId.systemDefault());
-				builder.append(" - ").append(endLocal.format(format));
+			PeriodList recurrence = event.calculateRecurrenceSet(period);
+			for (Period p : recurrence) {
+				Instant startDate = p.getStart().toInstant();
+				LocalDateTime startLocal = LocalDateTime.ofInstant(startDate, ZoneId.systemDefault());
+				if (!period.intersects(p)) {
+					logger.info("Skipping " + startLocal.format(format));
+					continue;
+				}
+				logger.debug("Start: " + startLocal.format(format));
+				builder.append(startLocal.format(format));
+				DtEnd ending = event.getEndDate(true);
+				if (ending != null) {
+					LocalDateTime endLocal = LocalDateTime
+									.ofInstant(p.getEnd().toInstant(), ZoneId.systemDefault());
+					builder.append(" - ").append(endLocal.format(format));
+				}
+				builder.append("\n");
 			}
-			builder.append("\n");
 		}
 		// event title
 		builder.append(event.getProperty(Property.SUMMARY).getValue()).append("\n");

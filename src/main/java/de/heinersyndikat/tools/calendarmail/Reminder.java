@@ -85,19 +85,24 @@ public class Reminder {
 		return builder.build();
 	}
 
-	/**
-	 * Get the defined filter for this reminder.
-	 *
-	 * @return created filter
-	 */
-	protected Filter getFilter() {
+	protected Period getPeriod() {
 		// get actual timestamp (beginning of day)
 		Calendar today = Calendar.getInstance();
 		today.set(java.util.Calendar.HOUR_OF_DAY, 0);
 		today.clear(java.util.Calendar.MINUTE);
 		today.clear(java.util.Calendar.SECOND);
 		// define the time period
-		Period period = new Period(new DateTime(today.getTime()), new Dur(days_in_advance, 0, 0, 0));
+		return new Period(new DateTime(today.getTime()), new Dur(days_in_advance, 0, 0, 0));
+	}
+	
+	/**
+	 * Get the defined filter for this reminder.
+	 *
+	 * @return created filter
+	 */
+	protected Filter getFilter() {
+		// define the time period
+		Period period = getPeriod();
 		// create filter for time period
 		Rule[] rules = {new PeriodRule(period)};
 		Filter filter = new Filter(rules, Filter.MATCH_ALL);
@@ -121,7 +126,7 @@ public class Reminder {
 		}
 		logger.info("Found " + events.size() + " relevant entries for reminder ["
 						+ getName() + "]");
-		String all_events = RemoteCalendar.eventlist_to_string(events);
+		String all_events = RemoteCalendar.eventlist_to_string(events, getPeriod());
 		// Create the email body entry text
 		ResourceBundle message_bundle = CalendarMailConfiguration.INSTANCE.getMessages();
 		logger.debug("Events[" + getName() + "]:\n" + all_events);
