@@ -44,7 +44,8 @@ public class RemoteCalendar {
 					= LoggerFactory.getLogger(Thread.currentThread().getStackTrace()[1].getClassName());
 
 	public static final String CONFIG_KEYWORD = "calendars";
-	public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+	public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+	public static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
 	private String hostname;
 	private String address;
@@ -135,6 +136,21 @@ public class RemoteCalendar {
 	}
 
 	/**
+	 * Check if the event is an all day event.
+	 * 
+	 * @param event the event to be checked
+	 * @return according date format
+	 */
+	private static DateTimeFormatter getDateFormat(VEvent event) {
+		// check if event is all day event
+		if (event.getStartDate().toString().contains("VALUE=DATE")) {
+			return DATE_FORMAT;
+		} else {
+			return DATE_TIME_FORMAT;
+		}
+	}
+
+	/**
 	 * Convert an event to a string representation.
 	 *
 	 * @param event the given event
@@ -145,15 +161,17 @@ public class RemoteCalendar {
 		// Event time
 		DtStart start = event.getStartDate();
 		if (start != null) {
+//			event.calculateRecurrenceSet(null);
 			Instant startDate = start.getDate().toInstant();
 			LocalDateTime startLocal = LocalDateTime.ofInstant(startDate, ZoneId.systemDefault());
-			builder.append(startLocal.format(DATE_FORMAT));
-			logger.debug("Start: " + startLocal.format(DATE_FORMAT));
+			DateTimeFormatter format = getDateFormat(event);
+			builder.append(startLocal.format(format));
+			logger.debug("Start: " + startLocal.format(format));
 			DtEnd ending = event.getEndDate(true);
 			if (ending != null) {
 				LocalDateTime endLocal = LocalDateTime
 								.ofInstant(ending.getDate().toInstant(), ZoneId.systemDefault());
-				builder.append(" - ").append(endLocal.format(DATE_FORMAT));
+				builder.append(" - ").append(endLocal.format(format));
 			}
 			builder.append("\n");
 		}
